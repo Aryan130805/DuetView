@@ -8,9 +8,8 @@ import '../theme/app_theme.dart';
 
 /// Dedicated viewport screen for displaying the secondary monitor stream.
 ///
-/// Designed so that in Phases 3 and 4, the [StreamViewportPlaceholder] can be
-/// swapped with the native [Texture] / [SurfaceView] hardware video decoder
-/// without altering the container, controls, or aspect-ratio scaling.
+/// In Phase 3, displays real-time desktop JPEG frames received from the
+/// Windows streaming host via the SecondScreen v1 TCP protocol.
 class StreamingScreen extends StatefulWidget {
   final ConnectionService connectionService;
   final SettingsService settingsService;
@@ -55,6 +54,20 @@ class _StreamingScreenState extends State<StreamingScreen> {
     }
   }
 
+  Future<void> _handleRetry() async {
+    final dev = widget.connectionService.state.connectedDevice;
+    final lastHost = dev?.address.isNotEmpty == true
+        ? dev!.address
+        : widget.settingsService.settings.lastHostAddress;
+    final port = dev?.port ?? widget.settingsService.settings.defaultPort;
+
+    if (lastHost.isNotEmpty) {
+      await widget.connectionService.connectToDevice(lastHost, port);
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = widget.settingsService.settings;
@@ -87,7 +100,7 @@ class _StreamingScreenState extends State<StreamingScreen> {
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 250),
                   curve: Curves.easeInOut,
-                  top: _showOverlay ? 0 : -90,
+                  top: _showOverlay ? 0 : -95,
                   left: 0,
                   right: 0,
                   child: _buildTopOverlay(context, state),
@@ -126,6 +139,29 @@ class _StreamingScreenState extends State<StreamingScreen> {
   }
 
   Widget _buildViewportContent(ConnectionStateModel state) {
+    // 1. If actively streaming, render the incoming JPEG frames
+    if (state.isStreaming) {
+      return ValueListenableBuilder<Uint8List?>(
+        valueListenable: widget.connectionService.latestFrame,
+        builder: (context, frameBytes, _) {
+          if (frameBytes != null && frameBytes.isNotEmpty) {
+            return Image.memory(
+              frameBytes,
+              gaplessPlayback: true,
+              fit: BoxFit.contain,
+              width: double.infinity,
+              height: double.infinity,
+              errorBuilder: (context, error, stackTrace) {
+                return _buildErrorState('Error decoding frame: $error');
+              },
+            );
+          }
+          return _buildWaitingState(state);
+        },
+      );
+    }
+
+    // 2. Connecting state
     if (state.isConnecting) {
       return Center(
         child: Column(
@@ -147,34 +183,83 @@ class _StreamingScreenState extends State<StreamingScreen> {
       );
     }
 
+    // 3. Connected but awaiting the first frame
     if (state.isConnected) {
-      // Architectural Placeholder: Clearly explains state without fake streaming
-      final settings = widget.settingsService.settings;
-      return StreamViewportPlaceholder(
-        device: state.connectedDevice,
-        resolutionLabel: settings.resolution.label,
-        fps: settings.frameRate.fps,
-        pingMs: state.pingMs,
-      );
+      return _buildWaitingState(state);
     }
 
+    // 4. Failed or Disconnected state
+    return _buildErrorState(state.errorMessage ?? 'Disconnected from host');
+  }
+
+  Widget _buildWaitingState(ConnectionStateModel state) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.link_off, color: Colors.white54, size: 48),
-          const SizedBox(height: 16),
-          Text(
-            state.errorMessage ?? 'Disconnected from PC',
-            style: const TextStyle(color: Colors.white, fontSize: 16),
-            textAlign: TextAlign.center,
+          const SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              color: Color(0xFF38BDF8),
+            ),
           ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Back to Home'),
+          const SizedBox(height: 20),
+          Text(
+            'Connected to ${state.connectedDevice?.address ?? "Windows PC"}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Awaiting initial desktop frame transmission...',
+            style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.link_off, color: Colors.white54, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: const BorderSide(color: Colors.white38),
+                  ),
+                  child: const Text('Back to Home'),
+                ),
+                const SizedBox(width: 12),
+                FilledButton.icon(
+                  onPressed: _handleRetry,
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('Retry Connection'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -223,8 +308,7 @@ class _StreamingScreenState extends State<StreamingScreen> {
                   ),
                 ),
                 Text(
-                  '${settings.resolution.label} • ${settings.frameRate.fps} FPS'
-                  '${state.pingMs != null ? " • ${state.pingMs} ms" : ""}',
+                  _buildMetricsString(state, settings),
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
@@ -247,88 +331,14 @@ class _StreamingScreenState extends State<StreamingScreen> {
       ),
     );
   }
-}
 
-/// Placeholder viewport component representing the display canvas.
-///
-/// This component will be replaced by the hardware video surface in Phase 3 & 4.
-class StreamViewportPlaceholder extends StatelessWidget {
-  final dynamic device;
-  final String resolutionLabel;
-  final int fps;
-  final int? pingMs;
-
-  const StreamViewportPlaceholder({
-    super.key,
-    required this.device,
-    required this.resolutionLabel,
-    required this.fps,
-    this.pingMs,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF334155)),
-              ),
-              child: const Icon(
-                Icons.connected_tv,
-                size: 52,
-                color: Color(0xFF38BDF8),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Secondary Display Stream Viewport',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Target: $resolutionLabel @ $fps FPS',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              constraints: const BoxConstraints(maxWidth: 480),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: const Text(
-                'Phase 2 MVP: TCP connection established. '
-                'In Phase 3 and 4, the native Direct3D screen-capture and MediaCodec video pipeline '
-                'will stream Windows desktop frames directly onto this canvas.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: 12,
-                  height: 1.4,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  String _buildMetricsString(ConnectionStateModel state, dynamic settings) {
+    if (state.isStreaming) {
+      final frameKb = (state.lastFrameSizeBytes / 1024).toStringAsFixed(1);
+      final transitStr = state.pingMs != null ? ' • ${state.pingMs} ms' : '';
+      return '${state.receivedFps} FPS • $frameKb KB/frame$transitStr';
+    }
+    return '${settings.resolution.label} • ${settings.frameRate.fps} FPS'
+        '${state.pingMs != null ? " • ${state.pingMs} ms" : ""}';
   }
 }

@@ -81,7 +81,8 @@ class ConnectionStatusCard extends StatelessWidget {
                 ),
               ),
             ],
-            if (state.status == ConnectionStatus.connected) ...[
+            if (state.status == ConnectionStatus.connected ||
+                state.status == ConnectionStatus.streaming) ...[
               const SizedBox(height: 16),
               const Divider(height: 1),
               const SizedBox(height: 12),
@@ -100,8 +101,10 @@ class ConnectionStatusCard extends StatelessWidget {
                   ),
                   _buildMetaItem(
                     theme,
-                    label: 'Ping',
-                    value: state.pingMs != null ? '${state.pingMs} ms' : '--',
+                    label: state.isStreaming ? 'Live FPS' : 'Ping',
+                    value: state.isStreaming
+                        ? '${state.receivedFps} FPS'
+                        : (state.pingMs != null ? '${state.pingMs} ms' : '--'),
                   ),
                 ],
               ),
@@ -113,7 +116,11 @@ class ConnectionStatusCard extends StatelessWidget {
                       child: FilledButton.icon(
                         onPressed: onOpenStream,
                         icon: const Icon(Icons.fullscreen, size: 18),
-                        label: const Text('Open Display'),
+                        label: Text(
+                          state.isStreaming
+                              ? 'View Live Stream'
+                              : 'Open Display',
+                        ),
                       ),
                     ),
                   if (onDisconnect != null) ...[
@@ -198,7 +205,16 @@ class ConnectionStatusCard extends StatelessWidget {
             color: color.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.check_circle, color: color, size: 24),
+          child: Icon(Icons.sync, color: color, size: 24),
+        );
+      case ConnectionStatus.streaming:
+        return Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.live_tv, color: color, size: 24),
         );
       case ConnectionStatus.failed:
         return Container(
@@ -223,7 +239,10 @@ class ConnectionStatusCard extends StatelessWidget {
         return 'Handshaking with ${dev?.address ?? "host"}...';
       case ConnectionStatus.connected:
         final dev = state.connectedDevice;
-        return 'Active session with ${dev?.name ?? "Windows PC"}.';
+        return 'Connected to ${dev?.name ?? "Windows PC"}. Waiting for frames...';
+      case ConnectionStatus.streaming:
+        final dev = state.connectedDevice;
+        return 'Streaming desktop from ${dev?.address} at ${state.receivedFps} FPS.';
       case ConnectionStatus.failed:
         return 'Could not establish connection to the host.';
     }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:second_screen_android/app.dart';
@@ -12,13 +13,23 @@ import 'package:second_screen_android/services/settings_service.dart';
 class MockConnectionService extends ChangeNotifier
     implements ConnectionService {
   ConnectionStateModel _state = const ConnectionStateModel();
+  final ValueNotifier<Uint8List?> _latestFrame = ValueNotifier<Uint8List?>(
+    null,
+  );
 
   @override
   ConnectionStateModel get state => _state;
 
+  @override
+  ValueListenable<Uint8List?> get latestFrame => _latestFrame;
+
   void setState(ConnectionStateModel newState) {
     _state = newState;
     notifyListeners();
+  }
+
+  void setLatestFrame(Uint8List? frame) {
+    _latestFrame.value = frame;
   }
 
   @override
@@ -33,6 +44,7 @@ class MockConnectionService extends ChangeNotifier
   @override
   Future<void> disconnect({String? reason}) async {
     _state = const ConnectionStateModel(status: ConnectionStatus.disconnected);
+    _latestFrame.value = null;
     notifyListeners();
   }
 
@@ -160,9 +172,31 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Connected'), findsOneWidget);
+    expect(find.text('Connected (Waiting for frames)'), findsOneWidget);
     expect(find.text('12 ms'), findsOneWidget);
     expect(find.text('Open Display'), findsOneWidget);
     expect(find.text('Disconnect'), findsOneWidget);
   });
+
+  testWidgets(
+    'ConnectionStatusCard responds to streaming state with live FPS',
+    (tester) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      mockConnService.setState(
+        const ConnectionStateModel(
+          status: ConnectionStatus.streaming,
+          receivedFps: 24,
+          lastFrameSizeBytes: 85000,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Streaming Live'), findsOneWidget);
+      expect(find.text('24 FPS'), findsOneWidget);
+      expect(find.text('View Live Stream'), findsWidgets);
+      expect(find.text('Disconnect'), findsOneWidget);
+    },
+  );
 }

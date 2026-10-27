@@ -1,0 +1,6 @@
+# Windows Host Streaming Server Requirements
+# Python 3.10+ supported (Verified with Python 3.12)
+
+mss>=9.0.0
+Pillow>=10.0.0
+pytest>=8.0.0

@@ -11,6 +11,10 @@ class FakeSocket extends Stream<Uint8List> implements Socket {
   bool wasDestroyed = false;
   bool wasClosed = false;
 
+  void emitChunk(Uint8List chunk) {
+    _controller.add(chunk);
+  }
+
   @override
   StreamSubscription<Uint8List> listen(
     void Function(Uint8List event)? onData, {
@@ -29,15 +33,33 @@ class FakeSocket extends Stream<Uint8List> implements Socket {
   @override
   void destroy() {
     wasDestroyed = true;
+    _controller.close();
   }
 
   @override
   Future close() async {
     wasClosed = true;
+    _controller.close();
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+Uint8List buildFramePacket(Uint8List payload) {
+  final header = ByteData(20);
+  header.setUint8(0, 0x53);
+  header.setUint8(1, 0x53);
+  header.setUint8(2, 0x30);
+  header.setUint8(3, 0x31);
+  header.setUint8(4, 0x01);
+  header.setUint32(8, payload.length, Endian.big);
+  header.setUint64(12, 1700000000000, Endian.big);
+
+  final builder = BytesBuilder();
+  builder.add(header.buffer.asUint8List());
+  builder.add(payload);
+  return builder.toBytes();
 }
 
 void main() {
@@ -69,40 +91,40 @@ void main() {
     });
   });
 
-  group('ConnectionService Lifecycle & State Transition Tests', () {
-    test(
-      'transitions through connecting to connected on successful socket probe',
-      () async {
-        final fakeSocket = FakeSocket();
-        final service = DefaultConnectionService(
-          socketConnector: (host, port, {timeout}) async => fakeSocket,
-        );
+  group('ConnectionService Lifecycle & Streaming Tests', () {
+    test('transitions through connecting to connected, then streaming on incoming frame', () async {
+      final fakeSocket = FakeSocket();
+      final service = DefaultConnectionService(
+        socketConnector: (host, port, {timeout}) async => fakeSocket,
+      );
 
-        final stateHistory = <ConnectionStatus>[];
-        service.addListener(() {
-          stateHistory.add(service.state.status);
-        });
+      expect(service.state.status, ConnectionStatus.disconnected);
 
-        expect(service.state.status, ConnectionStatus.disconnected);
+      final success = await service.connectToDevice('192.168.1.100', 52025);
 
-        final success = await service.connectToDevice('192.168.1.100', 52025);
+      expect(success, isTrue);
+      expect(service.state.status, ConnectionStatus.connected);
+      expect(service.state.connectedDevice?.address, '192.168.1.100');
+      expect(service.latestFrame.value, isNull);
 
-        expect(success, isTrue);
-        expect(service.state.status, ConnectionStatus.connected);
-        expect(service.state.connectedDevice?.address, '192.168.1.100');
-        expect(service.state.connectedDevice?.port, 52025);
-        expect(service.state.pingMs, isNotNull);
-        expect(stateHistory, [
-          ConnectionStatus.connecting,
-          ConnectionStatus.connected,
-        ]);
+      // Host sends a frame packet
+      final fakeJpeg = Uint8List.fromList([0xFF, 0xD8, 0x11, 0x22, 0xFF, 0xD9]);
+      fakeSocket.emitChunk(buildFramePacket(fakeJpeg));
 
-        // Disconnect
-        await service.disconnect();
-        expect(service.state.status, ConnectionStatus.disconnected);
-        expect(service.state.connectedDevice, isNull);
-      },
-    );
+      // Wait a microtask for stream event processing
+      await Future.delayed(Duration.zero);
+
+      expect(service.state.status, ConnectionStatus.streaming);
+      expect(service.state.isStreaming, isTrue);
+      expect(service.state.totalFramesReceived, 1);
+      expect(service.latestFrame.value, fakeJpeg);
+
+      // Disconnect
+      await service.disconnect();
+      expect(service.state.status, ConnectionStatus.disconnected);
+      expect(service.state.connectedDevice, isNull);
+      expect(service.latestFrame.value, isNull);
+    });
 
     test(
       'transitions to failed state when socket throws SocketException',

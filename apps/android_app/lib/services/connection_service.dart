@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/connection_state.dart';
 import '../models/pc_device.dart';
+import 'frame_accumulator.dart';
 
 typedef SocketConnector = Future<Socket> Function(
   dynamic host,
@@ -12,9 +13,10 @@ typedef SocketConnector = Future<Socket> Function(
   Duration? timeout,
 });
 
-/// Interface for connection lifecycle management.
+/// Interface for connection lifecycle and video frame reception management.
 abstract class ConnectionService extends ChangeNotifier {
   ConnectionStateModel get state;
+  ValueListenable<Uint8List?> get latestFrame;
 
   Future<bool> connectToDevice(String address, int port, {String? pcName});
   Future<void> disconnect({String? reason});
@@ -23,26 +25,31 @@ abstract class ConnectionService extends ChangeNotifier {
 
 /// Standard implementation of [ConnectionService].
 ///
-/// In this Phase 2 MVP, [connectToDevice] validates inputs, enforces timeouts,
-/// and attempts a real TCP socket handshake to verify host reachability.
-/// When the TCP endpoint connects, it holds the state as connected.
-///
-/// NOTE: As documented in the architecture, a reachable TCP endpoint proves network
-/// connectivity to the host; the full video pipeline and IddCx driver integration
-/// will plug into this connection in Phases 3, 4, and 5.
+/// Connects to the SecondScreen streaming host via TCP, validates the v1
+/// framing protocol, and yields received JPEG frames to [latestFrame] for display.
 class DefaultConnectionService extends ChangeNotifier
     implements ConnectionService {
   final SocketConnector _socketConnector;
 
   ConnectionStateModel _state = const ConnectionStateModel();
+  final ValueNotifier<Uint8List?> _latestFrame = ValueNotifier<Uint8List?>(
+    null,
+  );
+
   Socket? _activeSocket;
+  FrameAccumulator? _accumulator;
   bool _isCancelled = false;
+
+  final List<int> _recentFrameTimestamps = [];
 
   DefaultConnectionService({SocketConnector? socketConnector})
     : _socketConnector = socketConnector ?? Socket.connect;
 
   @override
   ConnectionStateModel get state => _state;
+
+  @override
+  ValueListenable<Uint8List?> get latestFrame => _latestFrame;
 
   /// Validates an IPv4 address string (e.g. 192.168.1.100).
   static bool isValidIpv4(String address) {
@@ -105,6 +112,9 @@ class DefaultConnectionService extends ChangeNotifier
     await _closeSocket();
 
     _isCancelled = false;
+    _recentFrameTimestamps.clear();
+    _latestFrame.value = null;
+
     final targetDevice = PcDevice(
       id: '$cleanAddress:$port',
       name: pcName ?? 'Windows PC ($cleanAddress)',
@@ -125,7 +135,7 @@ class DefaultConnectionService extends ChangeNotifier
 
     try {
       debugPrint(
-        'ConnectionService: Probing TCP endpoint at $cleanAddress:$port...',
+        'ConnectionService: Connecting to host at $cleanAddress:$port...',
       );
       final socket = await _socketConnector(
         cleanAddress,
@@ -149,6 +159,7 @@ class DefaultConnectionService extends ChangeNotifier
       _activeSocket = socket;
       _listenToSocket(socket);
 
+      // Connected to TCP socket; now waiting for incoming stream frames
       _updateState(
         _state.copyWith(
           status: ConnectionStatus.connected,
@@ -159,7 +170,7 @@ class DefaultConnectionService extends ChangeNotifier
       );
 
       debugPrint(
-        'ConnectionService: TCP endpoint reached in ${stopwatch.elapsedMilliseconds}ms.',
+        'ConnectionService: TCP connection open in ${stopwatch.elapsedMilliseconds}ms. Awaiting stream frames...',
       );
       return true;
     } on SocketException catch (e) {
@@ -170,7 +181,7 @@ class DefaultConnectionService extends ChangeNotifier
           status: ConnectionStatus.failed,
           errorMessage:
               'Could not connect to $cleanAddress:$port. '
-              'Make sure the Windows PC is on the same local Wi-Fi network and any firewall allows port $port.',
+              'Make sure the Windows PC is on the same local Wi-Fi network and the host server is running.',
         ),
       );
       return false;
@@ -182,7 +193,7 @@ class DefaultConnectionService extends ChangeNotifier
           status: ConnectionStatus.failed,
           errorMessage:
               'Connection timed out after 4 seconds. '
-              'Please verify the PC\'s IP address and ensure both devices are connected to the same router.',
+              'Please verify the PC\'s IP address and ensure Windows Firewall allows port $port.',
         ),
       );
       return false;
@@ -197,6 +208,51 @@ class DefaultConnectionService extends ChangeNotifier
       );
       return false;
     }
+  }
+
+  void _onFrameReceived(Uint8List frameBytes, int timestampMs) {
+    _latestFrame.value = frameBytes;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    _recentFrameTimestamps.add(now);
+    _recentFrameTimestamps.removeWhere((ts) => now - ts > 1000);
+    final currentFps = _recentFrameTimestamps.length;
+
+    _updateState(
+      _state.copyWith(
+        status: ConnectionStatus.streaming,
+        receivedFps: currentFps,
+        lastFrameSizeBytes: frameBytes.length,
+        totalFramesReceived: _state.totalFramesReceived + 1,
+        hostTimestampMs: timestampMs,
+        clearError: true,
+      ),
+    );
+  }
+
+  void _listenToSocket(Socket socket) {
+    _accumulator = FrameAccumulator(
+      onFrame: _onFrameReceived,
+      onError: (err) {
+        debugPrint('ConnectionService: $err');
+        disconnect(reason: err);
+      },
+    );
+
+    socket.listen(
+      (data) {
+        _accumulator?.addChunk(data);
+      },
+      onError: (error) {
+        debugPrint('ConnectionService: Socket stream error: $error');
+        disconnect(reason: 'Connection dropped by host.');
+      },
+      onDone: () {
+        debugPrint('ConnectionService: Host closed connection.');
+        disconnect(reason: 'Host closed the connection.');
+      },
+      cancelOnError: true,
+    );
   }
 
   @override
@@ -215,32 +271,22 @@ class DefaultConnectionService extends ChangeNotifier
   @override
   Future<void> disconnect({String? reason}) async {
     await _closeSocket();
+    _accumulator?.reset();
+    _accumulator = null;
+    _recentFrameTimestamps.clear();
+    _latestFrame.value = null;
+
     _updateState(
       ConnectionStateModel(
-        status: ConnectionStatus.disconnected,
+        status: reason != null
+            ? ConnectionStatus.failed
+            : ConnectionStatus.disconnected,
         errorMessage: reason,
         connectedDevice: null,
       ),
     );
     debugPrint(
       'ConnectionService: Disconnected. Reason: ${reason ?? "User disconnected"}',
-    );
-  }
-
-  void _listenToSocket(Socket socket) {
-    socket.listen(
-      (data) {
-        // Reserved for Phase 3 frame packet parsing
-      },
-      onError: (error) {
-        debugPrint('ConnectionService: Socket stream error: $error');
-        disconnect(reason: 'Connection dropped by host.');
-      },
-      onDone: () {
-        debugPrint('ConnectionService: Host closed connection.');
-        disconnect(reason: 'Host closed the connection.');
-      },
-      cancelOnError: true,
     );
   }
 
@@ -262,6 +308,7 @@ class DefaultConnectionService extends ChangeNotifier
   @override
   void dispose() {
     _closeSocket();
+    _latestFrame.dispose();
     super.dispose();
   }
 }

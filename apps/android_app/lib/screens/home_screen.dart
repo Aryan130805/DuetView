@@ -98,9 +98,11 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 20),
 
                     // Actions
-                    if (state.isConnected) ...[
+                    if (state.isConnected || state.isStreaming) ...[
                       PrimaryButton(
-                        label: 'View Extended Display',
+                        label: state.isStreaming
+                            ? 'View Live Stream'
+                            : 'View Extended Display',
                         icon: Icons.fullscreen,
                         onPressed: () {
                           Navigator.push(

@@ -13,7 +13,8 @@ class AppTheme {
   static const Color statusDisconnected = Color(0xFF64748B); // Slate 500
   static const Color statusSearching = Color(0xFFF59E0B); // Amber 500
   static const Color statusConnecting = Color(0xFF0284C7); // Sky 600
-  static const Color statusConnected = Color(0xFF10B981); // Emerald 500
+  static const Color statusConnected = Color(0xFF0EA5E9); // Cyan / Blue 500
+  static const Color statusStreaming = Color(0xFF10B981); // Emerald 500
   static const Color statusFailed = Color(0xFFEF4444); // Red 500
 
   static Color colorForStatus(ConnectionStatus status) {
@@ -26,6 +27,8 @@ class AppTheme {
         return statusConnecting;
       case ConnectionStatus.connected:
         return statusConnected;
+      case ConnectionStatus.streaming:
+        return statusStreaming;
       case ConnectionStatus.failed:
         return statusFailed;
     }
@@ -40,7 +43,9 @@ class AppTheme {
       case ConnectionStatus.connecting:
         return 'Connecting to PC...';
       case ConnectionStatus.connected:
-        return 'Connected';
+        return 'Connected (Waiting for frames)';
+      case ConnectionStatus.streaming:
+        return 'Streaming Live';
       case ConnectionStatus.failed:
         return 'Connection Failed';
     }
