@@ -1,0 +1,58 @@
+# Git ignore for SecondScreen
+
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+# Android
+**/*.apk
+**/*.aab
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/generated/
+**/android/**/build/
+
+# Visual Studio / C++ / MSVC
+.vs/
+x64/
+x86/
+Debug/
+Release/
+*.obj
+*.exe
+*.pdb
+*.ilk
+*.lib
+*.dll
+*.sys
+*.cer
+*.pfx
+
+# IDEs & OS files
+.idea/
+*.iml
+.vscode/
+Thumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.swp
+*~
+.DS_Store
+
+# Python scratch / prototypes
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env/
+
+# Logs & scratch
+*.log
