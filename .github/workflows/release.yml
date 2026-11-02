@@ -79,10 +79,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up MSYS2 MinGW-w64
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+
       - name: Build Windows Engine & Installer with Ninja
-        shell: bash
+        shell: msys2 {0}
         run: |
-          export PATH="/c/msys64/mingw64/bin:$PATH"
           cmake -B native/windows_engine/build -S native/windows_engine -G "Ninja" -DCMAKE_BUILD_TYPE=Release
           cmake --build native/windows_engine/build --config Release --target DuetView-PC DuetViewPC-Setup secondscreen_protocol_tests
           ctest --test-dir native/windows_engine/build --output-on-failure -R ProtocolTests
@@ -114,8 +123,9 @@ jobs:
               }
           }
           
-          # Compress portable package using tar
-          tar.exe -acf "staging/DuetView-PC-$ver-win64.zip" -C "$stageDir" DuetView-PC.exe duetview.ico driver
+          # Compress portable package using tar with absolute path
+          $zipPath = "$PWD/staging/DuetView-PC-$ver-win64.zip"
+          tar.exe -acf "$zipPath" -C "$stageDir" DuetView-PC.exe duetview.ico driver
 
           # Copy standalone installer
           Copy-Item "native/windows_engine/build/DuetView-PC-Setup.exe" -Destination "staging/DuetView-PC-Setup.exe"

@@ -41,6 +41,7 @@ Release/
 *.exp
 *.a
 *.res.obj
+!native/virtual_display_driver/devcon.exe
 cmake-build-*/
 .ninja*
 

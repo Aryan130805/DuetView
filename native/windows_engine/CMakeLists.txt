@@ -123,9 +123,6 @@ add_custom_target(stage_driver_package ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/../virtual_display_driver/SecondScreenIdd.cat
         ${CMAKE_BINARY_DIR}/driver/SecondScreenIdd.cat
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/../virtual_display_driver/devcon.exe
-        ${CMAKE_BINARY_DIR}/driver/devcon.exe
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/../virtual_display_driver/scripts/install_driver.bat
         ${CMAKE_BINARY_DIR}/driver/install_driver.bat
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -136,6 +133,14 @@ add_custom_target(stage_driver_package ALL
         ${CMAKE_BINARY_DIR}/duetview.ico
     COMMENT "Staging driver package files to build/driver"
 )
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../virtual_display_driver/devcon.exe)
+    add_custom_command(TARGET stage_driver_package POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_CURRENT_SOURCE_DIR}/../virtual_display_driver/devcon.exe
+            ${CMAKE_BINARY_DIR}/driver/devcon.exe
+    )
+endif()
 
 # -----------------------------------------------------------------------------
 # 6. DuetView PC Windows Standalone Installer
