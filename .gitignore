@@ -49,6 +49,7 @@ cmake-build-*/
 # 4. Distribution Artifacts (Hosted in GitHub Releases)
 # -----------------------------------------------------------------------------
 dist/
+staging/
 
 # -----------------------------------------------------------------------------
 # 5. Test Streams, Logs & Temporary Files

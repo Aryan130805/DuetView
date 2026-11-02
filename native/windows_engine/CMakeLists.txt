@@ -102,6 +102,8 @@ target_link_libraries(DuetView-PC PRIVATE
     dwmapi
     shlwapi
     shell32
+    msimg32
+    gdiplus
 )
 
 if(MSVC)
