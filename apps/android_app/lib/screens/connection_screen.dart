@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 
 import '../models/connection_state.dart';
+import '../models/saved_pc.dart';
 import '../services/connection_service.dart';
 import '../services/discovery_service.dart';
 import '../services/settings_service.dart';
+import '../services/saved_pc_storage.dart';
 import '../theme/app_theme.dart';
 import '../widgets/pc_device_card.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/responsive_container.dart';
+import 'qr_scanner_screen.dart';
 import 'streaming_screen.dart';
 
 class ConnectionScreen extends StatefulWidget {
   final ConnectionService connectionService;
   final SettingsService settingsService;
+  final SavedPcStorage? savedPcStorage;
   final bool autoStartDiscovery;
   final int initialTab;
 
@@ -20,6 +24,7 @@ class ConnectionScreen extends StatefulWidget {
     super.key,
     required this.connectionService,
     required this.settingsService,
+    this.savedPcStorage,
     this.autoStartDiscovery = false,
     this.initialTab = 0,
   });
@@ -101,12 +106,44 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     );
 
     if (success && mounted) {
+      // Save or update PC in SavedPcStorage so it appears on HomeScreen
+      if (widget.savedPcStorage != null) {
+        final existing = widget.savedPcStorage!.savedPcs
+            .cast<SavedPc?>()
+            .firstWhere(
+              (p) => p != null && p.endpoints.contains(targetHost),
+              orElse: () => null,
+            );
+
+        if (existing != null) {
+          await widget.savedPcStorage!.updatePcStatus(
+            existing.id,
+            PcOnlineStatus.streaming,
+            reachableEndpoint: targetHost,
+          );
+        } else {
+          final newPc = SavedPc(
+            id: 'pc-$targetHost-$targetPort',
+            name: 'Windows PC ($targetHost)',
+            endpoints: [targetHost],
+            port: targetPort,
+            protocolVersion: 2,
+            lastSeen: DateTime.now(),
+            status: PcOnlineStatus.streaming,
+          );
+          await widget.savedPcStorage!.savePc(newPc);
+        }
+      }
+
+      if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => StreamingScreen(
             connectionService: widget.connectionService,
             settingsService: widget.settingsService,
+            decoderBridge: widget.connectionService.decoderBridge,
           ),
         ),
       );
@@ -118,7 +155,46 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Connect to PC')),
+      appBar: AppBar(
+        title: const Text('Connect to PC'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner),
+            tooltip: 'Scan Pairing QR',
+            onPressed: () async {
+              final result = await Navigator.push<SavedPc>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => QrScannerScreen(
+                    storage: widget.savedPcStorage ?? SavedPcStorage(),
+                    connectionService: widget.connectionService,
+                    settingsService: widget.settingsService,
+                    decoderBridge: widget.connectionService.decoderBridge,
+                  ),
+                ),
+              );
+
+              if (result != null && mounted) {
+                if (widget.connectionService.state.isConnected ||
+                    widget.connectionService.state.isStreaming) {
+                  if (!context.mounted) return;
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StreamingScreen(
+                        connectionService: widget.connectionService,
+                        settingsService: widget.settingsService,
+                        decoderBridge: widget.connectionService.decoderBridge,
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: ResponsiveContainer(
@@ -306,7 +382,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                       const CircularProgressIndicator(),
                       const SizedBox(height: 16),
                       Text(
-                        'Scanning local subnet for SecondScreen beacons...',
+                        'Scanning local subnet for DuetView beacons...',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

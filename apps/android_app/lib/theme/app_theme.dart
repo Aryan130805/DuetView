@@ -3,19 +3,29 @@ import 'package:flutter/material.dart';
 import '../models/connection_state.dart';
 
 class AppTheme {
-  // Brand color palette
-  static const Color primarySeed = Color(0xFF2563EB); // Royal Blue
-  static const Color darkBackground = Color(0xFF0F172A); // Slate 900
-  static const Color darkSurface = Color(0xFF1E293B); // Slate 800
-  static const Color darkCard = Color(0xFF1E293B);
+  // Shared Brand Design System Palette (Matching Reference Images)
+  static const Color mainBackground = Color(0xFF080F20);
+  static const Color secondaryBackground = Color(0xFF0D1730);
+  static const Color primaryCard = Color(0xFF14213B);
+  static const Color elevatedCard = Color(0xFF1A2945);
+  static const Color primaryBlue = Color(0xFF2688FF);
+  static const Color cyanAccent = Color(0xFF42D9FF);
+  static const Color violetAccent = Color(0xFF7957FF);
+  static const Color primaryText = Color(0xFFF3F6FF);
+  static const Color secondaryText = Color(0xFFAAB7D0);
+  static const Color mutedText = Color(0xFF7586A6);
+  static const Color success = Color(0xFF20D6A0);
+  static const Color warning = Color(0xFFFFBD59);
+  static const Color error = Color(0xFFFF5D70);
+  static const Color border = Color(0xFF2B3D5D);
 
   // Status colors
-  static const Color statusDisconnected = Color(0xFF64748B); // Slate 500
-  static const Color statusSearching = Color(0xFFF59E0B); // Amber 500
-  static const Color statusConnecting = Color(0xFF0284C7); // Sky 600
-  static const Color statusConnected = Color(0xFF0EA5E9); // Cyan / Blue 500
-  static const Color statusStreaming = Color(0xFF10B981); // Emerald 500
-  static const Color statusFailed = Color(0xFFEF4444); // Red 500
+  static const Color statusDisconnected = mutedText;
+  static const Color statusSearching = warning;
+  static const Color statusConnecting = cyanAccent;
+  static const Color statusConnected = primaryBlue;
+  static const Color statusStreaming = success;
+  static const Color statusFailed = error;
 
   static Color colorForStatus(ConnectionStatus status) {
     switch (status) {
@@ -37,13 +47,13 @@ class AppTheme {
   static String labelForStatus(ConnectionStatus status) {
     switch (status) {
       case ConnectionStatus.disconnected:
-        return 'Disconnected';
+        return 'Not Connected';
       case ConnectionStatus.searching:
         return 'Searching for PCs...';
       case ConnectionStatus.connecting:
         return 'Connecting to PC...';
       case ConnectionStatus.connected:
-        return 'Connected (Waiting for frames)';
+        return 'Connected (Ready to Stream)';
       case ConnectionStatus.streaming:
         return 'Streaming Live';
       case ConnectionStatus.failed:
@@ -51,112 +61,62 @@ class AppTheme {
     }
   }
 
-  static ThemeData get lightTheme {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: primarySeed,
-      brightness: Brightness.light,
-    );
-
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-      appBarTheme: AppBarTheme(
-        centerTitle: false,
-        elevation: 0,
-        backgroundColor: const Color(0xFFF8FAFC),
-        foregroundColor: colorScheme.onSurface,
-        titleTextStyle: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF0F172A),
-          letterSpacing: -0.3,
-        ),
-      ),
-      cardTheme: CardThemeData(
-        elevation: 0,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFFE2E8F0)),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: colorScheme.primary, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-      ),
-    );
-  }
-
   static ThemeData get darkTheme {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: primarySeed,
+    const colorScheme = ColorScheme(
       brightness: Brightness.dark,
+      primary: primaryBlue,
+      onPrimary: Colors.white,
+      secondary: cyanAccent,
+      onSecondary: Colors.black,
+      tertiary: violetAccent,
+      onTertiary: Colors.white,
+      error: error,
+      onError: Colors.white,
+      surface: primaryCard,
+      onSurface: primaryText,
+      surfaceContainerHighest: elevatedCard,
+      onSurfaceVariant: secondaryText,
+      outline: border,
     );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: darkBackground,
-      appBarTheme: AppBarTheme(
+      scaffoldBackgroundColor: mainBackground,
+      appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
-        backgroundColor: darkBackground,
-        foregroundColor: Colors.white,
-        titleTextStyle: const TextStyle(
+        backgroundColor: Colors.transparent,
+        foregroundColor: primaryText,
+        titleTextStyle: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w700,
-          color: Colors.white,
+          color: primaryText,
           letterSpacing: -0.3,
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: darkSurface,
+        color: primaryCard,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFF334155)),
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: border),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF1E293B),
+        fillColor: elevatedCard,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF334155)),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF334155)),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: cyanAccent, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -167,11 +127,13 @@ class AppTheme {
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
           ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );
   }
+
+  static ThemeData get lightTheme => darkTheme;
 }

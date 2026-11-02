@@ -1,0 +1,199 @@
+name: DuetView Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Release version tag (e.g. v0.4.0)'
+        required: true
+        default: 'v0.4.0'
+      is_draft:
+        description: 'Create draft release'
+        type: boolean
+        default: false
+      is_prerelease:
+        description: 'Mark as pre-release'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Build Android APK
+  # ---------------------------------------------------------------------------
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        working-directory: apps/android_app
+        run: flutter pub get
+
+      - name: Run Flutter unit & widget tests
+        working-directory: apps/android_app
+        run: flutter test
+
+      - name: Build Release APK
+        working-directory: apps/android_app
+        run: flutter build apk --release
+
+      - name: Rename APK to DuetView-Android.apk
+        run: |
+          mkdir -p staging
+          cp apps/android_app/build/app/outputs/flutter-apk/app-release.apk staging/DuetView-Android.apk
+
+      - name: Upload Android APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: staging/DuetView-Android.apk
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # 2. Build Windows PC Executables & Packages
+  # ---------------------------------------------------------------------------
+  build-windows:
+    name: Build Windows Application & Packages
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure CMake
+        run: |
+          cmake -B native/windows_engine/build -S native/windows_engine -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Windows Engine, Installer & Run Tests
+        run: |
+          cmake --build native/windows_engine/build --config Release --target DuetView-PC DuetViewPC-Setup secondscreen_protocol_tests
+          ctest --test-dir native/windows_engine/build --output-on-failure -C Release
+
+      - name: Stage Windows Portable ZIP Package
+        shell: pwsh
+        run: |
+          $ver = "0.4.0"
+          $stageDir = "staging/DuetView-PC"
+          New-Item -ItemType Directory -Force -Path "$stageDir/driver" | Out-Null
+          
+          # Copy main executable and icon
+          Copy-Item "native/windows_engine/build/Release/DuetView-PC.exe" -Destination "$stageDir/DuetView-PC.exe" -ErrorAction SilentlyContinue
+          if (-not (Test-Path "$stageDir/DuetView-PC.exe")) {
+              Copy-Item "native/windows_engine/build/DuetView-PC.exe" -Destination "$stageDir/DuetView-PC.exe"
+          }
+          Copy-Item "native/windows_engine/resources/duetview.ico" -Destination "$stageDir/duetview.ico"
+          
+          # Copy driver files if available
+          if (Test-Path "native/virtual_display_driver/SecondScreenIdd.inf") {
+              Copy-Item "native/virtual_display_driver/SecondScreenIdd.inf" -Destination "$stageDir/driver/"
+              Copy-Item "native/virtual_display_driver/scripts/install_driver.bat" -Destination "$stageDir/driver/"
+              Copy-Item "native/virtual_display_driver/scripts/uninstall_driver.bat" -Destination "$stageDir/driver/"
+              if (Test-Path "native/virtual_display_driver/SecondScreenIdd.dll") {
+                  Copy-Item "native/virtual_display_driver/SecondScreenIdd.dll" -Destination "$stageDir/driver/"
+              }
+              if (Test-Path "native/virtual_display_driver/secondscreenidd.cat") {
+                  Copy-Item "native/virtual_display_driver/secondscreenidd.cat" -Destination "$stageDir/driver/"
+              }
+              if (Test-Path "native/virtual_display_driver/devcon.exe") {
+                  Copy-Item "native/virtual_display_driver/devcon.exe" -Destination "$stageDir/driver/"
+              }
+          }
+          
+          # Compress portable package
+          Compress-Archive -Path "$stageDir/*" -DestinationPath "staging/DuetView-PC-$ver-win64.zip" -Force
+
+          # Copy standalone installer
+          Copy-Item "native/windows_engine/build/Release/DuetView-PC-Setup.exe" -Destination "staging/DuetView-PC-Setup.exe" -ErrorAction SilentlyContinue
+          if (-not (Test-Path "staging/DuetView-PC-Setup.exe")) {
+              Copy-Item "native/windows_engine/build/DuetView-PC-Setup.exe" -Destination "staging/DuetView-PC-Setup.exe"
+          }
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            staging/DuetView-PC-Setup.exe
+            staging/DuetView-PC-*-win64.zip
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # 3. Publish GitHub Release
+  # ---------------------------------------------------------------------------
+  publish-release:
+    name: Publish Release
+    needs: [build-android, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Verify release artifacts & generate SHA-256 checksums
+        run: |
+          cd release-assets
+          echo "=== Release Artifacts ==="
+          ls -lh
+          
+          # Ensure all 3 required release assets are present
+          test -f DuetView-Android.apk || (echo "ERROR: DuetView-Android.apk missing!" && exit 1)
+          test -f DuetView-PC-Setup.exe || (echo "ERROR: DuetView-PC-Setup.exe missing!" && exit 1)
+          test -f DuetView-PC-0.4.0-win64.zip || (echo "ERROR: DuetView-PC-0.4.0-win64.zip missing!" && exit 1)
+          
+          # Generate SHA256SUMS.txt
+          sha256sum DuetView-Android.apk DuetView-PC-Setup.exe DuetView-PC-0.4.0-win64.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Determine tag name
+        id: get_tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.version_tag }}" >> $GITHUB_OUTPUT
+            echo "draft=${{ github.event.inputs.is_draft }}" >> $GITHUB_OUTPUT
+            echo "prerelease=${{ github.event.inputs.is_prerelease }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "draft=false" >> $GITHUB_OUTPUT
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_tag.outputs.tag }}
+          name: "DuetView ${{ steps.get_tag.outputs.tag }}"
+          draft: ${{ steps.get_tag.outputs.draft == 'true' }}
+          prerelease: ${{ steps.get_tag.outputs.prerelease == 'true' }}
+          files: |
+            release-assets/DuetView-Android.apk
+            release-assets/DuetView-PC-Setup.exe
+            release-assets/DuetView-PC-0.4.0-win64.zip
+            release-assets/SHA256SUMS.txt
+          generate_release_notes: true

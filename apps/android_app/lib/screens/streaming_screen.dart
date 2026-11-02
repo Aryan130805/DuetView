@@ -3,40 +3,109 @@ import 'package:flutter/services.dart';
 
 import '../models/connection_state.dart';
 import '../services/connection_service.dart';
+import '../services/decoder_bridge.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/h264_surface_view.dart';
+import '../widgets/touch_input_overlay.dart';
+import '../widgets/on_screen_keyboard_bar.dart';
 
 /// Dedicated viewport screen for displaying the secondary monitor stream.
 ///
-/// In Phase 3, displays real-time desktop JPEG frames received from the
-/// Windows streaming host via the SecondScreen v1 TCP protocol.
+/// Supports Phase 4 native H.264 SurfaceView hardware rendering as well as
+/// Phase 3 real-time desktop JPEG streaming fallback.
 class StreamingScreen extends StatefulWidget {
   final ConnectionService connectionService;
   final SettingsService settingsService;
+  final SecondScreenDecoderBridge? decoderBridge;
 
   const StreamingScreen({
     super.key,
     required this.connectionService,
     required this.settingsService,
+    this.decoderBridge,
   });
 
   @override
   State<StreamingScreen> createState() => _StreamingScreenState();
 }
 
-class _StreamingScreenState extends State<StreamingScreen> {
+class _StreamingScreenState extends State<StreamingScreen>
+    with WidgetsBindingObserver {
   bool _showOverlay = true;
+  bool _touchInputEnabled = true;
+  TouchInputMode _inputMode = TouchInputMode.direct;
+  bool _showKeyboard = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // Keep screen awake during active secondary display streaming
+    widget.decoderBridge?.setKeepScreenOn(true);
+
+    // Force landscape orientation for display streaming
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     if (widget.settingsService.settings.fullScreen) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     }
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Screen turned on or app returned to foreground
+      if (widget.settingsService.settings.fullScreen) {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      }
+      widget.decoderBridge?.setKeepScreenOn(true);
+
+      // Check socket health and recover stream
+      if (widget.connectionService.isSocketConnected) {
+        // TCP socket is still healthy; request immediate IDR keyframe to populate Surface
+        debugPrint(
+          'StreamingScreen: Resumed with active socket; requesting immediate keyframe.',
+        );
+        widget.connectionService.sendKeyframeRequest();
+      } else if (!widget.connectionService.isReconnecting &&
+          widget.connectionService.lastConnectedDevice != null) {
+        // Connection dropped while screen was off; initiate automatic reconnection
+        debugPrint(
+          'StreamingScreen: Resumed with dropped socket; triggering automatic reconnection.',
+        );
+        _triggerAutoReconnect();
+      }
+    } else if (state == AppLifecycleState.paused) {
+      debugPrint('StreamingScreen: App paused / screen turned off.');
+    }
+  }
+
+  void _triggerAutoReconnect() {
+    if (!mounted) return;
+    widget.connectionService.reconnect().then((success) {
+      if (mounted && success) {
+        widget.connectionService.sendKeyframeRequest();
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    widget.decoderBridge?.setKeepScreenOn(false);
+
+    // Restore all orientations when exiting streaming screen
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -55,7 +124,8 @@ class _StreamingScreenState extends State<StreamingScreen> {
   }
 
   Future<void> _handleRetry() async {
-    final dev = widget.connectionService.state.connectedDevice;
+    final dev = widget.connectionService.lastConnectedDevice ??
+        widget.connectionService.state.connectedDevice;
     final lastHost = dev?.address.isNotEmpty == true
         ? dev!.address
         : widget.settingsService.settings.lastHostAddress;
@@ -80,13 +150,17 @@ class _StreamingScreenState extends State<StreamingScreen> {
         builder: (context, _) {
           final state = widget.connectionService.state;
 
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _toggleOverlay,
-            child: Stack(
-              children: [
-                // 1. Center Display Viewport with preserved Aspect Ratio
-                Center(
+          return Stack(
+            children: [
+              // 1. Center Display Viewport with Touch Input Overlay
+              TouchInputOverlay(
+                connectionService: widget.connectionService,
+                desktopAspectRatio: aspectRatio,
+                enabled: _touchInputEnabled && state.isStreaming,
+                inputMode: _inputMode,
+                onInputModeChanged: (mode) => setState(() => _inputMode = mode),
+                onToggleControls: _toggleOverlay,
+                child: Center(
                   child: AspectRatio(
                     aspectRatio: aspectRatio,
                     child: Container(
@@ -95,43 +169,82 @@ class _StreamingScreenState extends State<StreamingScreen> {
                     ),
                   ),
                 ),
+              ),
 
-                // 2. Status Overlay Bar (top)
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeInOut,
-                  top: _showOverlay ? 0 : -95,
-                  left: 0,
-                  right: 0,
-                  child: _buildTopOverlay(context, state),
-                ),
+              // 2. Status Overlay Bar (top)
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                top: _showOverlay ? 0 : -110,
+                left: 0,
+                right: 0,
+                child: _buildTopOverlay(context, state),
+              ),
 
-                // 3. Bottom Tap Hint when overlay is hidden
-                if (!_showOverlay)
-                  Positioned(
-                    bottom: 16,
-                    left: 0,
-                    right: 0,
-                    child: Center(
+              // 3. Dropdown Menu Trigger ("V" on the left) when overlay is hidden
+              if (!_showOverlay)
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 8,
+                  left: 12,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _toggleOverlay,
+                      borderRadius: BorderRadius.circular(20),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                          horizontal: 10,
+                          vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
+                          color: Colors.black.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white24),
+                          border: Border.all(
+                            color: const Color(0xFF38BDF8).withValues(alpha: 0.5),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              blurRadius: 8,
+                            ),
+                          ],
                         ),
-                        child: const Text(
-                          'Tap screen to show controls',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Color(0xFF38BDF8),
+                              size: 22,
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: AppTheme.colorForStatus(state.status),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-              ],
-            ),
+                ),
+
+              // 4. On-Screen Keyboard Accessory Bar
+              if (_showKeyboard && state.isStreaming)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: OnScreenKeyboardBar(
+                    connectionService: widget.connectionService,
+                    onClose: () => setState(() => _showKeyboard = false),
+                  ),
+                ),
+            ],
           );
         },
       ),
@@ -139,11 +252,12 @@ class _StreamingScreenState extends State<StreamingScreen> {
   }
 
   Widget _buildViewportContent(ConnectionStateModel state) {
-    // 1. If actively streaming, render the incoming JPEG frames
+    // 1. If actively streaming, check whether native H.264 SurfaceView or JPEG fallback is active
     if (state.isStreaming) {
       return ValueListenableBuilder<Uint8List?>(
         valueListenable: widget.connectionService.latestFrame,
         builder: (context, frameBytes, _) {
+          // If JPEG frame bytes exist, render via Phase 3 JPEG fallback
           if (frameBytes != null && frameBytes.isNotEmpty) {
             return Image.memory(
               frameBytes,
@@ -156,13 +270,27 @@ class _StreamingScreenState extends State<StreamingScreen> {
               },
             );
           }
+
+          // Otherwise, if H.264 decoder bridge is attached, render native SurfaceView
+          if (widget.decoderBridge != null) {
+            final res = widget.settingsService.settings.resolution;
+            return H264SurfaceView(
+              bridge: widget.decoderBridge!,
+              aspectRatio: res.width / res.height,
+              showDebugBadge: false,
+            );
+          }
+
           return _buildWaitingState(state);
         },
       );
     }
 
-    // 2. Connecting state
-    if (state.isConnecting) {
+    // 2. Connecting or Reconnecting state
+    if (state.isConnecting || widget.connectionService.isReconnecting) {
+      final target = state.connectedDevice ??
+          widget.connectionService.lastConnectedDevice;
+      final isReconnecting = widget.connectionService.isReconnecting;
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -170,13 +298,17 @@ class _StreamingScreenState extends State<StreamingScreen> {
             const CircularProgressIndicator(color: Colors.white),
             const SizedBox(height: 20),
             Text(
-              'Connecting to ${state.connectedDevice?.address ?? "PC"}...',
+              isReconnecting
+                  ? 'Reconnecting to ${target?.name ?? target?.address ?? "PC"}...'
+                  : 'Connecting to ${target?.address ?? "PC"}...',
               style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Establishing low-latency TCP connection',
-              style: TextStyle(color: Colors.white54, fontSize: 13),
+            Text(
+              isReconnecting
+                  ? 'Restoring display stream after pause/wake'
+                  : 'Establishing low-latency TCP connection',
+              style: const TextStyle(color: Colors.white54, fontSize: 13),
             ),
           ],
         ),
@@ -284,6 +416,20 @@ class _StreamingScreenState extends State<StreamingScreen> {
       ),
       child: Row(
         children: [
+          // Dropdown menu toggle button ("V" on the left) to collapse banner
+          IconButton(
+            icon: const Icon(
+              Icons.keyboard_arrow_up,
+              color: Color(0xFF38BDF8),
+              size: 26,
+            ),
+            tooltip: 'Hide controls',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            onPressed: _toggleOverlay,
+          ),
+          const SizedBox(width: 6),
+
           // Status indicator dot
           Container(
             width: 10,
@@ -314,6 +460,62 @@ class _StreamingScreenState extends State<StreamingScreen> {
               ],
             ),
           ),
+
+          // Touch Control Toggle
+          IconButton(
+            icon: Icon(
+              _touchInputEnabled ? Icons.touch_app : Icons.touch_app_outlined,
+              color: _touchInputEnabled ? Colors.greenAccent : Colors.white38,
+              size: 20,
+            ),
+            tooltip: _touchInputEnabled
+                ? 'Disable Touch Input'
+                : 'Enable Touch Input',
+            onPressed: () {
+              setState(() {
+                _touchInputEnabled = !_touchInputEnabled;
+              });
+            },
+          ),
+
+          // Input Mode Toggle (Direct Touch vs Trackpad)
+          IconButton(
+            icon: Icon(
+              _inputMode == TouchInputMode.direct
+                  ? Icons.fingerprint
+                  : Icons.mouse,
+              color: Colors.white70,
+              size: 20,
+            ),
+            tooltip: _inputMode == TouchInputMode.direct
+                ? 'Mode: Direct Touch (Tap to switch to Trackpad)'
+                : 'Mode: Trackpad (Tap to switch to Direct Touch)',
+            onPressed: () {
+              setState(() {
+                _inputMode = _inputMode == TouchInputMode.direct
+                    ? TouchInputMode.trackpad
+                    : TouchInputMode.direct;
+              });
+            },
+          ),
+
+          // On-Screen Keyboard Toggle
+          IconButton(
+            icon: Icon(
+              _showKeyboard ? Icons.keyboard_hide : Icons.keyboard,
+              color: _showKeyboard ? Colors.blueAccent : Colors.white70,
+              size: 20,
+            ),
+            tooltip: _showKeyboard ? 'Hide Keyboard' : 'Show Keyboard',
+            onPressed: () {
+              setState(() {
+                _showKeyboard = !_showKeyboard;
+              });
+            },
+          ),
+
+          const SizedBox(width: 8),
+
           // Disconnect action button
           OutlinedButton.icon(
             onPressed: _handleDisconnect,
@@ -333,12 +535,19 @@ class _StreamingScreenState extends State<StreamingScreen> {
   }
 
   String _buildMetricsString(ConnectionStateModel state, dynamic settings) {
+    final proto = state.activeProtocol == StreamingProtocol.ss02H264
+        ? 'H.264 SS02'
+        : (state.activeProtocol == StreamingProtocol.ss01Jpeg
+              ? 'JPEG SS01'
+              : '');
+    final protoStr = proto.isNotEmpty ? '[$proto] ' : '';
+
     if (state.isStreaming) {
       final frameKb = (state.lastFrameSizeBytes / 1024).toStringAsFixed(1);
       final transitStr = state.pingMs != null ? ' • ${state.pingMs} ms' : '';
-      return '${state.receivedFps} FPS • $frameKb KB/frame$transitStr';
+      return '$protoStr${state.receivedFps} FPS • $frameKb KB/frame$transitStr';
     }
-    return '${settings.resolution.label} • ${settings.frameRate.fps} FPS'
+    return '$protoStr${settings.resolution.label} • ${settings.frameRate.fps} FPS'
         '${state.pingMs != null ? " • ${state.pingMs} ms" : ""}';
   }
 }

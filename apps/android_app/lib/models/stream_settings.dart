@@ -22,7 +22,9 @@ enum StreamResolution {
 
 enum StreamFrameRate {
   fps30(30, '30 FPS (Power Saver)'),
-  fps60(60, '60 FPS (Smooth)');
+  fps60(60, '60 FPS (Smooth)'),
+  fps90(90, '90 FPS (Smooth 90Hz)'),
+  fps120(120, '120 FPS (Ultra 120Hz)');
 
   final int fps;
   final String label;
@@ -30,6 +32,8 @@ enum StreamFrameRate {
 
   static StreamFrameRate fromFps(int? fps) {
     if (fps == 30) return StreamFrameRate.fps30;
+    if (fps == 90) return StreamFrameRate.fps90;
+    if (fps == 120) return StreamFrameRate.fps120;
     return StreamFrameRate.fps60;
   }
 }

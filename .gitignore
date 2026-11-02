@@ -1,26 +1,33 @@
-# Git ignore for SecondScreen
+# DuetView Repository .gitignore
 
-# Flutter / Dart
+# -----------------------------------------------------------------------------
+# 1. Flutter & Dart
+# -----------------------------------------------------------------------------
 .dart_tool/
 .packages
-build/
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
+apps/android_app/build/
+apps/android_app/.dart_tool/
 
-# Android
+# -----------------------------------------------------------------------------
+# 2. Android & Gradle Build Artifacts
+# -----------------------------------------------------------------------------
 **/*.apk
 **/*.aab
 **/android/.gradle/
 **/android/captures/
-**/android/gradlew
-**/android/gradlew.bat
 **/android/local.properties
 **/android/**/generated/
 **/android/**/build/
+.gradle/
 
-# Visual Studio / C++ / MSVC
+# -----------------------------------------------------------------------------
+# 3. Native C++ / CMake / Visual Studio Outputs
+# -----------------------------------------------------------------------------
+native/windows_engine/build/
 .vs/
 x64/
 x86/
@@ -31,12 +38,32 @@ Release/
 *.pdb
 *.ilk
 *.lib
-*.dll
-*.sys
-*.cer
-*.pfx
+*.exp
+*.a
+*.res.obj
+cmake-build-*/
+.ninja*
 
-# IDEs & OS files
+# -----------------------------------------------------------------------------
+# 4. Distribution Artifacts (Hosted in GitHub Releases)
+# -----------------------------------------------------------------------------
+dist/
+
+# -----------------------------------------------------------------------------
+# 5. Test Streams, Logs & Temporary Files
+# -----------------------------------------------------------------------------
+*.log
+*.h264
+test_stream.h264
+scratch/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+
+# -----------------------------------------------------------------------------
+# 6. IDEs & Operating System Artifacts
+# -----------------------------------------------------------------------------
 .idea/
 *.iml
 .vscode/
@@ -47,12 +74,12 @@ $RECYCLE.BIN/
 *~
 .DS_Store
 
-# Python scratch / prototypes
-__pycache__/
-*.pyc
-*.pyo
-venv/
-.env/
-
-# Logs & scratch
-*.log
+# -----------------------------------------------------------------------------
+# 7. Certificates, Private Keys & Keystores (Prevent Accidental Leaks)
+# -----------------------------------------------------------------------------
+*.pfx
+*.keystore
+*.jks
+*.key
+*.pem
+*.env

@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../models/connection_state.dart';
 import '../theme/app_theme.dart';
 
+/// Redesigned Glassmorphic Connection Status Card matching Reference Image 1
 class ConnectionStatusCard extends StatelessWidget {
   final ConnectionStateModel state;
   final VoidCallback? onCancel;
   final VoidCallback? onDisconnect;
   final VoidCallback? onOpenStream;
+  final VoidCallback? onTap;
 
   const ConnectionStatusCard({
     super.key,
@@ -15,263 +17,252 @@ class ConnectionStatusCard extends StatelessWidget {
     this.onCancel,
     this.onDisconnect,
     this.onOpenStream,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final statusColor = AppTheme.colorForStatus(state.status);
+    final isOnline = state.isConnected || state.isStreaming;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(left: BorderSide(color: statusColor, width: 4)),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.primaryCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap ?? (isOnline ? onOpenStream : null),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildStatusIcon(state.status, statusColor),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppTheme.labelForStatus(state.status),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: statusColor,
-                        ),
+                Row(
+                  children: [
+                    // Monitor Icon Container
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: AppTheme.elevatedCard,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppTheme.border),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _buildSubtitle(),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                      child: Icon(
+                        isOnline ? Icons.tv_rounded : Icons.desktop_windows_outlined,
+                        color: isOnline ? AppTheme.cyanAccent : AppTheme.secondaryText,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+
+                    // Title & Description
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            AppTheme.labelForStatus(state.status),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isOnline ? AppTheme.cyanAccent : AppTheme.primaryText,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            _buildSubtitle(),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.mutedText,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Chevron Arrow
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppTheme.mutedText,
+                      size: 24,
+                    ),
+                  ],
+                ),
+
+                // Error Message if failed
+                if (state.status == ConnectionStatus.failed && state.errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.error.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      state.errorMessage!,
+                      style: const TextStyle(
+                        color: AppTheme.error,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+
+                // Connected/Streaming Details & Quick Actions
+                if (isOnline) ...[
+                  const SizedBox(height: 14),
+                  const Divider(color: AppTheme.border, height: 1),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildMetaItem('Target Host', state.connectedDevice?.address ?? '127.0.0.1'),
+                      _buildMetaItem('Port', '${state.connectedDevice?.port ?? 52025}'),
+                      _buildMetaItem(
+                        state.isStreaming ? 'Live FPS' : 'Ping',
+                        state.isStreaming ? '${state.receivedFps} FPS' : (state.pingMs != null ? '${state.pingMs} ms' : '--'),
+                        highlight: state.isStreaming,
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      if (onOpenStream != null)
+                        Expanded(
+                          child: Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [AppTheme.primaryBlue, AppTheme.cyanAccent],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(10),
+                                onTap: onOpenStream,
+                                child: Center(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.fullscreen, color: Colors.white, size: 18),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        state.isStreaming
+                                            ? 'View Live Stream'
+                                            : 'Open Display',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (onDisconnect != null) ...[
+                        const SizedBox(width: 10),
+                        OutlinedButton.icon(
+                          onPressed: onDisconnect,
+                          icon: const Icon(Icons.link_off, size: 16),
+                          label: const Text('Disconnect'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.error,
+                            side: const BorderSide(color: AppTheme.error),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+
+                // Connecting: Cancel button
+                if (state.status == ConnectionStatus.connecting && onCancel != null) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: onCancel,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.secondaryText,
+                      side: const BorderSide(color: AppTheme.border),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Cancel Connection'),
+                  ),
+                ],
               ],
             ),
-            if (state.status == ConnectionStatus.failed &&
-                state.errorMessage != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.statusFailed.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppTheme.statusFailed.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Text(
-                  state.errorMessage!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppTheme.statusFailed,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-            if (state.status == ConnectionStatus.connected ||
-                state.status == ConnectionStatus.streaming) ...[
-              const SizedBox(height: 16),
-              const Divider(height: 1),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildMetaItem(
-                    theme,
-                    label: 'Target Host',
-                    value: state.connectedDevice?.address ?? 'Local IP',
-                  ),
-                  _buildMetaItem(
-                    theme,
-                    label: 'Port',
-                    value: '${state.connectedDevice?.port ?? 52025}',
-                  ),
-                  _buildMetaItem(
-                    theme,
-                    label: state.isStreaming ? 'Live FPS' : 'Ping',
-                    value: state.isStreaming
-                        ? '${state.receivedFps} FPS'
-                        : (state.pingMs != null ? '${state.pingMs} ms' : '--'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  if (onOpenStream != null)
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: onOpenStream,
-                        icon: const Icon(Icons.fullscreen, size: 18),
-                        label: Text(
-                          state.isStreaming
-                              ? 'View Live Stream'
-                              : 'Open Display',
-                        ),
-                      ),
-                    ),
-                  if (onDisconnect != null) ...[
-                    const SizedBox(width: 12),
-                    OutlinedButton.icon(
-                      onPressed: onDisconnect,
-                      icon: const Icon(Icons.link_off, size: 18),
-                      label: const Text('Disconnect'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: theme.colorScheme.error,
-                        side: BorderSide(color: theme.colorScheme.error),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-            if (state.status == ConnectionStatus.connecting &&
-                onCancel != null) ...[
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: onCancel,
-                  child: const Text('Cancel Connection'),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildStatusIcon(ConnectionStatus status, Color color) {
-    switch (status) {
-      case ConnectionStatus.disconnected:
-        return Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(Icons.cast, color: color, size: 24),
-        );
-      case ConnectionStatus.searching:
-        return Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
-          ),
-        );
-      case ConnectionStatus.connecting:
-        return Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
-          ),
-        );
-      case ConnectionStatus.connected:
-        return Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(Icons.sync, color: color, size: 24),
-        );
-      case ConnectionStatus.streaming:
-        return Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(Icons.live_tv, color: color, size: 24),
-        );
-      case ConnectionStatus.failed:
-        return Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(Icons.error_outline, color: color, size: 24),
-        );
-    }
-  }
-
-  String _buildSubtitle() {
-    switch (state.status) {
-      case ConnectionStatus.disconnected:
-        return 'Not connected to any Windows PC.';
-      case ConnectionStatus.searching:
-        return 'Listening for broadcast beacons on your local network.';
-      case ConnectionStatus.connecting:
-        final dev = state.connectedDevice;
-        return 'Handshaking with ${dev?.address ?? "host"}...';
-      case ConnectionStatus.connected:
-        final dev = state.connectedDevice;
-        return 'Connected to ${dev?.name ?? "Windows PC"}. Waiting for frames...';
-      case ConnectionStatus.streaming:
-        final dev = state.connectedDevice;
-        return 'Streaming desktop from ${dev?.address} at ${state.receivedFps} FPS.';
-      case ConnectionStatus.failed:
-        return 'Could not establish connection to the host.';
-    }
-  }
-
-  Widget _buildMetaItem(
-    ThemeData theme, {
-    required String label,
-    required String value,
-  }) {
+  Widget _buildMetaItem(String label, String value, {bool highlight = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(
-            letterSpacing: 0.8,
-            color: theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: AppTheme.mutedText,
+            fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w700,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: highlight ? AppTheme.success : AppTheme.primaryText,
           ),
         ),
       ],
     );
+  }
+
+  String _buildSubtitle() {
+    switch (state.status) {
+      case ConnectionStatus.disconnected:
+        return 'No active connection to a Windows PC.';
+      case ConnectionStatus.searching:
+        return 'Broadcasting UDP discovery requests...';
+      case ConnectionStatus.connecting:
+        return 'Connecting to ${state.connectedDevice?.name ?? 'host'}...';
+      case ConnectionStatus.connected:
+        return 'Established TCP session. Initializing decoder...';
+      case ConnectionStatus.streaming:
+        return 'Hardware-accelerated H.264 display stream active.';
+      case ConnectionStatus.failed:
+        return state.errorMessage ?? 'Connection dropped or timed out.';
+    }
   }
 }
