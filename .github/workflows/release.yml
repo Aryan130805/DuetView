@@ -79,17 +79,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
+      - name: Set up MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
 
       - name: Configure CMake
         run: |
-          cmake -B native/windows_engine/build -S native/windows_engine -DCMAKE_BUILD_TYPE=Release
+          cmake -B native/windows_engine/build -S native/windows_engine -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 
       - name: Build Windows Engine, Installer & Run Tests
         run: |
-          cmake --build native/windows_engine/build --config Release --target DuetView-PC DuetViewPC-Setup secondscreen_protocol_tests
-          ctest --test-dir native/windows_engine/build --output-on-failure -C Release
+          cmake --build native/windows_engine/build --config Release --target DuetView-PC DuetViewPC-Setup secondscreen_protocol_tests secondscreen_capture_tests secondscreen_encoder_tests secondscreen_driver_tests
+          ctest --test-dir native/windows_engine/build --output-on-failure
 
       - name: Stage Windows Portable ZIP Package
         shell: pwsh
@@ -99,10 +101,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path "$stageDir/driver" | Out-Null
           
           # Copy main executable and icon
-          Copy-Item "native/windows_engine/build/Release/DuetView-PC.exe" -Destination "$stageDir/DuetView-PC.exe" -ErrorAction SilentlyContinue
-          if (-not (Test-Path "$stageDir/DuetView-PC.exe")) {
-              Copy-Item "native/windows_engine/build/DuetView-PC.exe" -Destination "$stageDir/DuetView-PC.exe"
-          }
+          Copy-Item "native/windows_engine/build/DuetView-PC.exe" -Destination "$stageDir/DuetView-PC.exe"
           Copy-Item "native/windows_engine/resources/duetview.ico" -Destination "$stageDir/duetview.ico"
           
           # Copy driver files if available
@@ -121,14 +120,11 @@ jobs:
               }
           }
           
-          # Compress portable package
-          Compress-Archive -Path "$stageDir/*" -DestinationPath "staging/DuetView-PC-$ver-win64.zip" -Force
+          # Compress portable package using tar
+          tar.exe -acf "staging/DuetView-PC-$ver-win64.zip" -C "$stageDir" DuetView-PC.exe duetview.ico driver
 
           # Copy standalone installer
-          Copy-Item "native/windows_engine/build/Release/DuetView-PC-Setup.exe" -Destination "staging/DuetView-PC-Setup.exe" -ErrorAction SilentlyContinue
-          if (-not (Test-Path "staging/DuetView-PC-Setup.exe")) {
-              Copy-Item "native/windows_engine/build/DuetView-PC-Setup.exe" -Destination "staging/DuetView-PC-Setup.exe"
-          }
+          Copy-Item "native/windows_engine/build/DuetView-PC-Setup.exe" -Destination "staging/DuetView-PC-Setup.exe"
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -196,4 +192,24 @@ jobs:
             release-assets/DuetView-PC-Setup.exe
             release-assets/DuetView-PC-0.4.0-win64.zip
             release-assets/SHA256SUMS.txt
-          generate_release_notes: true
+          body: |
+            ## DuetView v0.4.0 (Pre-Release)
+            
+            **DuetView** turns your Android phone or tablet into a companion display for your Windows PC over local Wi-Fi or USB tethering.
+            
+            ### 📥 Downloads
+            - **Android APK**: [DuetView-Android.apk](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-Android.apk)
+            - **Windows Installer**: [DuetView-PC-Setup.exe](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-Setup.exe)
+            - **Windows Portable ZIP**: [DuetView-PC-0.4.0-win64.zip](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-0.4.0-win64.zip)
+            
+            ### 🌟 Key Features
+            - **Redesigned Modern UI**: Complete UI redesign for Android (deep midnight palette, side-by-side action cards, 3-tab glassmorphic navigation) and Windows PC (sidebar navigation, dual-screen hero banner, host configuration, QR pairing with neon cyan brackets).
+            - **Unified Single Binary**: Native streaming engine runs in-process inside `DuetView-PC.exe` with zero external runtime DLL dependencies.
+            - **Driver-Free Desktop Mirroring**: Immediate wireless screen streaming with touch and keyboard interaction without needing reboot or driver installation.
+            - **Extended Display Mode**: Bundled Microsoft IddCx virtual display driver for creating a genuine secondary desktop workspace.
+            - **Hardware-Accelerated Encoding & Decoding**: DXGI Desktop Duplication + Windows Media Foundation H.264 encoder on PC; Android `MediaCodec` direct to `SurfaceView`.
+            - **Instant QR Pairing**: Cryptographic 5-minute QR tokens with live countdown and LAN address discovery.
+            - **Ultra-Low Latency USB Mode**: Sub-5ms latency when connected via Android USB tethering.
+            
+            ### 🔒 SHA-256 Checksums
+            See attached `SHA256SUMS.txt` for verified asset hashes.

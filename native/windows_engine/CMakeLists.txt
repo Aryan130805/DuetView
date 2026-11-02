@@ -15,14 +15,19 @@ if(MINGW)
 endif()
 
 # Compile Windows PE icon resource
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/app_icon.res.obj
-    COMMAND windres -i app.rc -o app_icon.res.obj
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different app_icon.res.obj ${CMAKE_CURRENT_BINARY_DIR}/app_icon.res.obj
-    COMMAND ${CMAKE_COMMAND} -E remove app_icon.res.obj
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/resources/app.rc ${CMAKE_CURRENT_SOURCE_DIR}/resources/duetview.ico
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources
-)
+if(MINGW)
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/app_icon.res.obj
+        COMMAND windres -i app.rc -o app_icon.res.obj
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different app_icon.res.obj ${CMAKE_CURRENT_BINARY_DIR}/app_icon.res.obj
+        COMMAND ${CMAKE_COMMAND} -E remove app_icon.res.obj
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/resources/app.rc ${CMAKE_CURRENT_SOURCE_DIR}/resources/duetview.ico
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources
+    )
+    set(APP_ICON_RES ${CMAKE_CURRENT_BINARY_DIR}/app_icon.res.obj)
+else()
+    set(APP_ICON_RES resources/app.rc)
+endif()
 
 # -----------------------------------------------------------------------------
 # 1. Protocol, Capture & Encoder Foundation Library
@@ -88,7 +93,7 @@ endif()
 add_executable(DuetView-PC WIN32
     src/app/main_window.cpp
     src/app/process_manager.cpp
-    ${CMAKE_CURRENT_BINARY_DIR}/app_icon.res.obj
+    ${APP_ICON_RES}
 )
 
 target_link_libraries(DuetView-PC PRIVATE
