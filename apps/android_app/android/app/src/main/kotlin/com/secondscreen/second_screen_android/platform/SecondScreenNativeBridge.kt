@@ -93,6 +93,29 @@ class SecondScreenNativeBridge(
                 }
                 result.success(true)
             }
+            "openTetheringSettings" -> {
+                activity?.let { act ->
+                    try {
+                        val intent = android.content.Intent().apply {
+                            action = "android.settings.TETHER_SETTINGS"
+                            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        act.startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        try {
+                            val intent = android.content.Intent().apply {
+                                action = android.provider.Settings.ACTION_WIRELESS_SETTINGS
+                                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            act.startActivity(intent)
+                            result.success(true)
+                        } catch (e2: Exception) {
+                            result.success(false)
+                        }
+                    }
+                } ?: result.success(false)
+            }
             "getMetrics" -> {
                 val m = decoder.getMetrics()
                 result.success(

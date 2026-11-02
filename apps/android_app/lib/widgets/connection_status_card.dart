@@ -22,7 +22,6 @@ class ConnectionStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = AppTheme.colorForStatus(state.status);
     final isOnline = state.isConnected || state.isStreaming;
 
     return Container(

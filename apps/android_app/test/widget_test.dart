@@ -367,4 +367,78 @@ void main() {
       expect(mockSettingsService.settings.fullScreen, isFalse);
     },
   );
+
+  testWidgets(
+    'HomeScreen renders mode selector and toggles between Wireless and USB mode',
+    (tester) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      // 1. In default Wireless mode:
+      expect(find.byKey(const Key('mode_wireless')), findsOneWidget);
+      expect(find.byKey(const Key('mode_usb')), findsOneWidget);
+
+      // Verify Wireless options are visible
+      expect(find.text('Discover PCs'), findsOneWidget);
+      expect(find.text('Scan to Connect'), findsOneWidget);
+      expect(find.text('Manual IP'), findsOneWidget);
+
+      // Verify USB card is not visible yet
+      expect(find.text('Wired USB Connection'), findsNothing);
+      expect(find.byKey(const Key('usb_connect_button')), findsNothing);
+
+      // 2. Switch to USB mode
+      final usbTab = find.byKey(const Key('mode_usb'));
+      await tester.tap(usbTab);
+      await tester.pumpAndSettle();
+
+      // Verify Wireless options are removed
+      expect(find.text('Discover PCs'), findsNothing);
+      expect(find.text('Scan to Connect'), findsNothing);
+      expect(find.text('Manual IP'), findsNothing);
+
+      // Verify Wired USB Connection options are shown
+      expect(find.text('Wired USB Connection'), findsOneWidget);
+      expect(find.text('Connect via USB'), findsOneWidget);
+      expect(find.byKey(const Key('usb_connect_button')), findsOneWidget);
+      expect(find.byKey(const Key('usb_tethering_settings_button')), findsOneWidget);
+      expect(find.byKey(const Key('usb_guide_button')), findsOneWidget);
+
+      // 3. Switch back to Wireless mode
+      final wirelessTab = find.byKey(const Key('mode_wireless'));
+      await tester.tap(wirelessTab);
+      await tester.pumpAndSettle();
+
+      // Verify Wireless options are restored
+      expect(find.text('Discover PCs'), findsOneWidget);
+      expect(find.text('Scan to Connect'), findsOneWidget);
+      expect(find.text('Manual IP'), findsOneWidget);
+
+      // Verify Wired USB Connection is removed
+      expect(find.text('Wired USB Connection'), findsNothing);
+      expect(find.byKey(const Key('usb_connect_button')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'HomeScreen USB mode Connect button triggers device connection',
+    (tester) async {
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      // Switch to USB mode
+      await tester.tap(find.byKey(const Key('mode_usb')));
+      await tester.pumpAndSettle();
+
+      // Tap 'Connect via USB'
+      final connectBtn = find.byKey(const Key('usb_connect_button'));
+      expect(connectBtn, findsOneWidget);
+      await tester.ensureVisible(connectBtn);
+      await tester.tap(connectBtn);
+      await tester.pumpAndSettle();
+
+      // Verify interaction succeeds without uncaught exception
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

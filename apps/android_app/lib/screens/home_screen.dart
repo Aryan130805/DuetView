@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/saved_pc.dart';
@@ -16,6 +18,12 @@ import 'guide_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'settings_screen.dart';
 import 'streaming_screen.dart';
+
+/// Supported connection transport modes on the Home Screen.
+enum ConnectionMode {
+  wireless,
+  usb,
+}
 
 class HomeScreen extends StatefulWidget {
   final ConnectionService connectionService;
@@ -41,6 +49,13 @@ class _HomeScreenState extends State<HomeScreen> {
   late final SavedPcStorage _storage;
   bool _showIntroCard = false;
   int _currentTabIndex = 0;
+  ConnectionMode _connectionMode = ConnectionMode.wireless;
+
+  late final TextEditingController _usbHostController;
+  late final TextEditingController _usbPortController;
+  bool _isUsbConnecting = false;
+  String? _detectedUsbInterface;
+  bool _showUsbAdvanced = false;
 
   @override
   void initState() {
@@ -50,6 +65,166 @@ class _HomeScreenState extends State<HomeScreen> {
       _storage.load();
     }
     _loadIntroStatus();
+    _loadConnectionMode();
+
+    final lastHost = widget.settingsService.settings.lastHostAddress;
+    _usbHostController = TextEditingController(
+      text: lastHost.isNotEmpty ? lastHost : '192.168.42.129',
+    );
+    _usbPortController = TextEditingController(
+      text: widget.settingsService.settings.defaultPort.toString(),
+    );
+    _checkUsbInterfaces();
+  }
+
+  @override
+  void dispose() {
+    _usbHostController.dispose();
+    _usbPortController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadConnectionMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final modeStr = prefs.getString('duetview_connection_mode');
+      if (modeStr == 'usb' && mounted) {
+        setState(() {
+          _connectionMode = ConnectionMode.usb;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _setConnectionMode(ConnectionMode mode) async {
+    if (_connectionMode == mode) return;
+    setState(() {
+      _connectionMode = mode;
+    });
+    if (mode == ConnectionMode.usb) {
+      _checkUsbInterfaces();
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('duetview_connection_mode', mode.name);
+    } catch (_) {}
+  }
+
+  Future<void> _checkUsbInterfaces() async {
+    try {
+      final interfaces = await NetworkInterface.list(
+        includeLoopback: false,
+        type: InternetAddressType.IPv4,
+      );
+      for (final iface in interfaces) {
+        final name = iface.name.toLowerCase();
+        if (name.contains('rndis') ||
+            name.contains('usb') ||
+            name.contains('ncm') ||
+            name.contains('eth')) {
+          for (final addr in iface.addresses) {
+            final ip = addr.address;
+            final parts = ip.split('.');
+            if (parts.length == 4) {
+              String defaultHost;
+              if (parts[3] == '129') {
+                defaultHost = '${parts[0]}.${parts[1]}.${parts[2]}.1';
+              } else if (parts[3] == '1') {
+                defaultHost = '${parts[0]}.${parts[1]}.${parts[2]}.2';
+              } else {
+                defaultHost = '${parts[0]}.${parts[1]}.${parts[2]}.1';
+              }
+              if (mounted) {
+                setState(() {
+                  _detectedUsbInterface = '${iface.name} ($ip)';
+                  if (_usbHostController.text.trim() == '192.168.42.129' ||
+                      _usbHostController.text.trim().isEmpty) {
+                    _usbHostController.text = defaultHost;
+                  }
+                });
+              }
+              return;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _openTetheringSettings(BuildContext context) async {
+    try {
+      final bridge = widget.decoderBridge ?? widget.connectionService.decoderBridge;
+      final opened = await bridge?.openTetheringSettings() ?? false;
+      if (!opened) {
+        const channel = MethodChannel('com.secondscreen/decoder_control');
+        final chOpened = await channel.invokeMethod<bool>('openTetheringSettings');
+        if (chOpened != true && mounted && context.mounted) {
+          _openGuideScreen(context);
+        }
+      }
+    } catch (_) {
+      if (mounted && context.mounted) {
+        _openGuideScreen(context);
+      }
+    }
+  }
+
+  Future<void> _connectViaUsb(BuildContext context) async {
+    final host = _usbHostController.text.trim();
+    final port = int.tryParse(_usbPortController.text.trim()) ?? 52025;
+
+    if (!DefaultConnectionService.isValidIpv4(host)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid IPv4 address (e.g. 192.168.42.129).'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isUsbConnecting = true;
+    });
+
+    try {
+      final ok = await widget.connectionService.connectToDevice(
+        host,
+        port,
+        pcName: 'Windows PC (USB)',
+      );
+
+      if (ok) {
+        await widget.settingsService.saveLastHost(host);
+        if (mounted && context.mounted) {
+          _openStreamingScreen(context);
+        }
+      } else {
+        if (mounted && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Could not connect to PC via USB on $host:$port.\n'
+                'Please ensure USB Tethering is enabled and DuetView PC is running.',
+              ),
+              backgroundColor: AppTheme.error,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Setup Guide',
+                textColor: Colors.white,
+                onPressed: () => _openGuideScreen(context),
+              ),
+            ),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUsbConnecting = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadIntroStatus() async {
@@ -502,15 +677,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       onDisconnect: () => widget.connectionService.disconnect(),
                       onOpenStream: () => _openStreamingScreen(context),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
 
-                    // Primary Action Cards (Side-by-side: Discover PCs & Scan to Connect)
-                    _buildPrimaryActionCards(context),
-                    const SizedBox(height: 12),
+                    // Option below "Not Connected" card: Connection Mode Selector (Wireless vs USB)
+                    _buildConnectionModeSelector(),
+                    const SizedBox(height: 16),
 
-                    // Secondary Action Buttons (Side-by-side: Manual IP & How to Use)
-                    _buildSecondaryActionButtons(context),
-                    const SizedBox(height: 24),
+                    if (_connectionMode == ConnectionMode.wireless) ...[
+                      // In Wireless mode: keep Discover PCs, Scan to Connect, and Manual IP
+                      // Primary Action Cards (Side-by-side: Discover PCs & Scan to Connect)
+                      _buildPrimaryActionCards(context),
+                      const SizedBox(height: 12),
+
+                      // Secondary Action Buttons (Side-by-side: Manual IP & How to Use)
+                      _buildSecondaryActionButtons(context),
+                      const SizedBox(height: 24),
+                    ] else ...[
+                      // In USB mode: remove Discover PCs, Scan to Connect, and Manual IP;
+                      // show Connect option for wired USB connection:
+                      _buildUsbConnectionCard(context),
+                      const SizedBox(height: 24),
+                    ],
 
                     // Saved PCs Section
                     _buildSavedPcsSection(context),
@@ -682,6 +869,610 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnectionModeSelector() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppTheme.border.withValues(alpha: 0.8),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Wireless Mode Option
+          Expanded(
+            child: _buildModeTab(
+              key: const Key('mode_wireless'),
+              mode: ConnectionMode.wireless,
+              icon: Icons.wifi_rounded,
+              label: 'Wireless',
+              subtitle: 'Wi-Fi Network',
+              isActive: _connectionMode == ConnectionMode.wireless,
+            ),
+          ),
+          const SizedBox(width: 4),
+          // USB Mode Option
+          Expanded(
+            child: _buildModeTab(
+              key: const Key('mode_usb'),
+              mode: ConnectionMode.usb,
+              icon: Icons.usb_rounded,
+              label: 'USB Cable',
+              subtitle: 'Wired Tethering',
+              isActive: _connectionMode == ConnectionMode.usb,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeTab({
+    Key? key,
+    required ConnectionMode mode,
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required bool isActive,
+  }) {
+    return Material(
+      key: key,
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _setConnectionMode(mode),
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+          decoration: BoxDecoration(
+            color: isActive ? null : Colors.transparent,
+            gradient: isActive
+                ? (mode == ConnectionMode.wireless
+                    ? const LinearGradient(
+                        colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : const LinearGradient(
+                        colors: [Color(0xFF92400E), Color(0xFFD97706)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ))
+                : null,
+            borderRadius: BorderRadius.circular(10),
+            border: isActive
+                ? Border.all(
+                    color: mode == ConnectionMode.wireless
+                        ? AppTheme.cyanAccent.withValues(alpha: 0.8)
+                        : const Color(0xFFFDE68A).withValues(alpha: 0.8),
+                    width: 1.2,
+                  )
+                : null,
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: (mode == ConnectionMode.wireless
+                              ? AppTheme.primaryBlue
+                              : const Color(0xFFF59E0B))
+                          .withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isActive
+                    ? Colors.white
+                    : AppTheme.secondaryText,
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                      color: isActive ? Colors.white : AppTheme.secondaryText,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isActive
+                          ? Colors.white.withValues(alpha: 0.85)
+                          : AppTheme.mutedText,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUsbConnectionCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF161E31), Color(0xFF111728)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFF2B3A5A),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFB45309), Color(0xFFD97706)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.usb_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Wired USB Connection',
+                            style: TextStyle(
+                              fontSize: 16.5,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryText,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: const Text(
+                            '< 5ms Latency',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFFBBF24),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Zero Wi-Fi interference • Direct tethered stream',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.secondaryText,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // Status & Detection Banner
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppTheme.elevatedCard.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _detectedUsbInterface != null
+                    ? AppTheme.success.withValues(alpha: 0.4)
+                    : AppTheme.border.withValues(alpha: 0.6),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _detectedUsbInterface != null
+                      ? Icons.check_circle_rounded
+                      : Icons.info_outline_rounded,
+                  size: 18,
+                  color: _detectedUsbInterface != null
+                      ? AppTheme.success
+                      : const Color(0xFFFBBF24),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _detectedUsbInterface != null
+                        ? 'Tethering Active: $_detectedUsbInterface'
+                        : 'Connect USB cable and turn on USB Tethering in phone Settings.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _detectedUsbInterface != null
+                          ? AppTheme.primaryText
+                          : AppTheme.secondaryText,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded, size: 18, color: AppTheme.mutedText),
+                  tooltip: 'Refresh USB Interfaces',
+                  onPressed: _checkUsbInterfaces,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Host IP & Port Configuration Summary / Toggle
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F1523),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppTheme.border.withValues(alpha: 0.5)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.laptop_chromebook_rounded,
+                          size: 16,
+                          color: AppTheme.cyanAccent,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Host IP: ${_usbHostController.text.trim().isEmpty ? "Auto (192.168.42.129)" : _usbHostController.text.trim()}:${_usbPortController.text.trim()}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryText,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _showUsbAdvanced = !_showUsbAdvanced;
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                        foregroundColor: AppTheme.cyanAccent,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _showUsbAdvanced ? 'Hide' : 'Edit IP',
+                            style: const TextStyle(fontSize: 11.5),
+                          ),
+                          Icon(
+                            _showUsbAdvanced
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (_showUsbAdvanced) ...[
+                  const Divider(color: AppTheme.border, height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 7,
+                        child: TextField(
+                          controller: _usbHostController,
+                          keyboardType: TextInputType.text,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'PC IP Address',
+                            labelStyle: const TextStyle(
+                              color: AppTheme.mutedText,
+                              fontSize: 12,
+                            ),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 10,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppTheme.border),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppTheme.border),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppTheme.cyanAccent),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 3,
+                        child: TextField(
+                          controller: _usbPortController,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Port',
+                            labelStyle: const TextStyle(
+                              color: AppTheme.mutedText,
+                              fontSize: 12,
+                            ),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 10,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppTheme.border),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppTheme.border),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppTheme.cyanAccent),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // THE PRIMARY "CONNECT" BUTTON FOR WIRED USB CONNECTION
+          Container(
+            width: double.infinity,
+            height: 48,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.35),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                key: const Key('usb_connect_button'),
+                onTap: _isUsbConnecting ? null : () => _connectViaUsb(context),
+                borderRadius: BorderRadius.circular(14),
+                child: Center(
+                  child: _isUsbConnecting
+                      ? const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'Connecting via USB...',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14.5,
+                              ),
+                            ),
+                          ],
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Connect via USB',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Secondary Action Helpers: Open Tethering Settings & USB Guide
+          Row(
+            children: [
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    key: const Key('usb_tethering_settings_button'),
+                    onTap: () => _openTetheringSettings(context),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.elevatedCard.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.border.withValues(alpha: 0.6)),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.settings_cell_rounded, size: 16, color: AppTheme.cyanAccent),
+                          SizedBox(width: 6),
+                          Text(
+                            'Tethering Settings',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.primaryText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    key: const Key('usb_guide_button'),
+                    onTap: () => _openGuideScreen(context),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.elevatedCard.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.border.withValues(alpha: 0.6)),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.help_outline_rounded, size: 16, color: AppTheme.secondaryText),
+                          SizedBox(width: 6),
+                          Text(
+                            'USB Setup Guide',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.primaryText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

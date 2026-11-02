@@ -304,6 +304,19 @@ class SecondScreenDecoderBridge extends ChangeNotifier {
     };
   }
 
+  /// Opens Android system USB Tethering settings directly.
+  Future<bool> openTetheringSettings() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('openTetheringSettings');
+      return res ?? false;
+    } on MissingPluginException {
+      return false;
+    } catch (e) {
+      debugPrint('Error opening tethering settings: $e');
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _stateController.close();

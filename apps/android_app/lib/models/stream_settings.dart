@@ -40,7 +40,7 @@ enum StreamFrameRate {
 
 enum ConnectionTransport {
   wifi('Wi-Fi (Local Network)'),
-  usb('USB Cable (Tethering / ADB - Planned)');
+  usb('USB Cable (Tethering / Wired)');
 
   final String label;
   const ConnectionTransport(this.label);
