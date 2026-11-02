@@ -79,17 +79,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Configure MinGW PATH
-        shell: pwsh
+      - name: Build Windows Engine & Installer with Ninja
+        shell: bash
         run: |
-          "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Configure CMake
-        run: |
-          cmake -B native/windows_engine/build -S native/windows_engine -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=C:/msys64/mingw64/bin/gcc.exe -DCMAKE_CXX_COMPILER=C:/msys64/mingw64/bin/g++.exe -DCMAKE_MAKE_PROGRAM=C:/msys64/mingw64/bin/mingw32-make.exe
-
-      - name: Build Windows Engine & Installer
-        run: |
+          export PATH="/c/msys64/mingw64/bin:$PATH"
+          cmake -B native/windows_engine/build -S native/windows_engine -G "Ninja" -DCMAKE_BUILD_TYPE=Release
           cmake --build native/windows_engine/build --config Release --target DuetView-PC DuetViewPC-Setup secondscreen_protocol_tests
           ctest --test-dir native/windows_engine/build --output-on-failure -R ProtocolTests
 
