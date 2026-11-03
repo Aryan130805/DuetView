@@ -63,6 +63,12 @@ public:
     /// Launches elevated uninstallation to remove driver and device node
     bool UninstallDriver(uint32_t& outExitCode, std::string& outErrorMessage);
 
+    /// Launches elevated driver repair (clean uninstallation followed by re-installation)
+    bool RepairDriver(uint32_t& outExitCode, std::string& outErrorMessage);
+
+    /// Checks and updates driver files and PnP device state
+    bool UpdateDriver(uint32_t& outExitCode, std::string& outErrorMessage);
+
     /// Formats a diagnostic explanation for a given driver state
     [[nodiscard]] static std::string GetStateDescription(DriverState state, uint32_t problemCode = 0);
 

@@ -362,35 +362,52 @@ bool DriverManager::UninstallDriver(uint32_t& outExitCode, std::string& outError
     const std::wstring infPath = FindDriverInfPath();
 
     wchar_t driverDir[MAX_PATH] = {0};
-    wcscpy_s(driverDir, infPath.c_str());
-    PathRemoveFileSpecW(driverDir);
-
-    std::wstring uninstBat = std::wstring(driverDir) + L"\\uninstall_driver.bat";
-    bool hasBat = (PathFileExistsW(uninstBat.c_str()) != FALSE);
-
-    std::wstring fileToExec;
-    std::wstring execParams;
-
-    if (hasBat) {
-        fileToExec = L"cmd.exe";
-        execParams = L"/c \"\"" + uninstBat + L"\"\"";
+    if (!infPath.empty()) {
+        wcscpy_s(driverDir, infPath.c_str());
+        PathRemoveFileSpecW(driverDir);
     } else {
-        wchar_t filename[MAX_PATH] = {0};
-        wcscpy_s(filename, infPath.c_str());
-        PathStripPathW(filename);
-        fileToExec = L"pnputil.exe";
-        execParams = L"/delete-driver \"" + std::wstring(filename) + L"\" /uninstall /force";
+        wchar_t exePath[MAX_PATH] = {0};
+        GetModuleFileNameW(NULL, exePath, MAX_PATH);
+        PathRemoveFileSpecW(exePath);
+        wcscpy_s(driverDir, exePath);
     }
+
+    // Locate devcon.exe if bundled
+    std::wstring devconCmd = L"";
+    std::wstring d1 = std::wstring(driverDir) + L"\\devcon.exe";
+    std::wstring d2 = std::wstring(driverDir) + L"\\..\\devcon.exe";
+    if (PathFileExistsW(d1.c_str())) {
+        devconCmd = L"& '" + d1 + L"' remove Root\\SecondScreenIdd; & '" + d1 + L"' remove 'Root\\SecondScreenIdd*'; ";
+    } else if (PathFileExistsW(d2.c_str())) {
+        devconCmd = L"& '" + d2 + L"' remove Root\\SecondScreenIdd; & '" + d2 + L"' remove 'Root\\SecondScreenIdd*'; ";
+    }
+
+    // Build elevated PowerShell script that cleans device node and deletes matching driver packages from Driver Store
+    std::wstring psScript = devconCmd +
+        L"pnputil /remove-device 'Root\\SecondScreenIdd' | Out-Null; "
+        L"$drivers = pnputil /enum-drivers; "
+        L"for ($i=0; $i -lt $drivers.Count; $i++) { "
+        L"  if ($drivers[$i] -match 'secondscreenidd') { "
+        L"    for ($j=$i; $j -ge 0; $j--) { "
+        L"      if ($drivers[$j] -match '(oem\\d+\\.inf)') { "
+        L"        pnputil /delete-driver $matches[1] /uninstall /force | Out-Null; "
+        L"        break; "
+        L"      } "
+        L"    } "
+        L"  } "
+        L"}";
+
+    std::wstring execParams = L"-NoProfile -ExecutionPolicy Bypass -Command \"" + psScript + L"\"";
 
     SHELLEXECUTEINFOW sei{};
     sei.cbSize = sizeof(sei);
     sei.fMask = SEE_MASK_NOCLOSEPROCESS;
     sei.hwnd = NULL;
     sei.lpVerb = L"runas"; // Requests standard Windows Administrator (UAC) elevation
-    sei.lpFile = fileToExec.c_str();
+    sei.lpFile = L"powershell.exe";
     sei.lpParameters = execParams.c_str();
     sei.lpDirectory = driverDir;
-    sei.nShow = hasBat ? SW_SHOWNORMAL : SW_HIDE;
+    sei.nShow = SW_HIDE;
 
     if (!ShellExecuteExW(&sei)) {
         DWORD err = GetLastError();
@@ -403,7 +420,7 @@ bool DriverManager::UninstallDriver(uint32_t& outExitCode, std::string& outError
     }
 
     if (sei.hProcess != NULL) {
-        WaitForSingleObject(sei.hProcess, 30000);
+        WaitForSingleObject(sei.hProcess, 45000);
         DWORD exitCode = 0;
         if (GetExitCodeProcess(sei.hProcess, &exitCode)) {
             outExitCode = exitCode;
@@ -413,7 +430,21 @@ bool DriverManager::UninstallDriver(uint32_t& outExitCode, std::string& outError
         CloseHandle(sei.hProcess);
     }
 
-    return false;
+    return true;
+}
+
+bool DriverManager::RepairDriver(uint32_t& outExitCode, std::string& outErrorMessage) {
+    // 1. Full clean uninstall of existing driver and device node
+    UninstallDriver(outExitCode, outErrorMessage);
+    Sleep(2000); // Allow Windows PnP subsystem to complete device teardown
+
+    // 2. Fresh installation and device reactivation
+    return InstallDriver(outExitCode, outErrorMessage);
+}
+
+bool DriverManager::UpdateDriver(uint32_t& outExitCode, std::string& outErrorMessage) {
+    // Re-register driver package to Windows Driver Store and trigger PnP device refresh
+    return InstallDriver(outExitCode, outErrorMessage);
 }
 
 } // namespace secondscreen::driver
