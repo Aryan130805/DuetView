@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../services/url_launcher_service.dart';
+import '../widgets/download_pc_guide_sheet.dart';
 import '../widgets/responsive_container.dart';
 
 /// In-app user guide explaining DuetView wireless and wired connection workflows,
@@ -73,6 +75,10 @@ class GuideScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(height: 20),
+
+                // DuetView PC Companion Banner
+                _buildPcDownloadBanner(context, theme),
                 const SizedBox(height: 24),
 
                 // Quick Navigation Pills / Summary
@@ -600,6 +606,96 @@ class GuideScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPcDownloadBanner(BuildContext context, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.laptop_windows_rounded,
+                  color: Color(0xFF38BDF8),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'DuetView PC Companion Required',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Download DuetView PC on Windows to enable streaming',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => DownloadPcGuideSheet.show(context),
+                  icon: const Icon(Icons.help_outline, size: 16),
+                  label: const Text('View Setup Steps', style: TextStyle(fontSize: 12.5)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF38BDF8),
+                    side: const BorderSide(color: Color(0xFF38BDF8)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => UrlLauncherService.openUrl(
+                    context,
+                    UrlLauncherService.githubReleases,
+                    title: 'GitHub Releases',
+                  ),
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: const Text('Download PC', style: TextStyle(fontSize: 12.5)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0284C7),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

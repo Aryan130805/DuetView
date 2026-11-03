@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/stream_settings.dart';
 import '../services/settings_service.dart';
+import '../services/url_launcher_service.dart';
+import '../widgets/download_pc_guide_sheet.dart';
 import '../widgets/responsive_container.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -232,31 +234,59 @@ class SettingsScreen extends StatelessWidget {
                     // Section 4: About & Version
                     _buildSectionHeader(theme, 'About DuetView'),
                     const SizedBox(height: 8),
-                    const Card(
+                    Card(
                       child: Column(
                         children: [
                           ListTile(
-                            leading: Icon(Icons.person, color: Color(0xFF38BDF8)),
-                            title: Text('Developer'),
-                            subtitle: Text('Aryan Verma\nRole: Developer'),
+                            leading: const Icon(Icons.person, color: Color(0xFF38BDF8)),
+                            title: const Text('Developer'),
+                            subtitle: const Text('Aryan Verma (@Aryan130805)\nTap to view GitHub profile'),
                             isThreeLine: true,
-                          ),
-                          Divider(height: 1, indent: 52, endIndent: 16),
-                          ListTile(
-                            leading: Icon(Icons.devices, color: Color(0xFF38BDF8)),
-                            title: Text('Project'),
-                            subtitle: Text(
-                              'DuetView — Secondary display system for Windows and Android providing low-latency desktop extension and mirroring over local Wi-Fi.',
+                            trailing: const Icon(Icons.open_in_new, size: 18, color: Color(0xFF38BDF8)),
+                            onTap: () => UrlLauncherService.openUrl(
+                              context,
+                              UrlLauncherService.developerProfile,
+                              title: 'Developer GitHub Profile',
                             ),
                           ),
-                          Divider(height: 1, indent: 52, endIndent: 16),
+                          const Divider(height: 1, indent: 52, endIndent: 16),
                           ListTile(
+                            leading: const Icon(Icons.laptop_windows_rounded, color: Color(0xFF38BDF8)),
+                            title: const Text('DuetView PC (Windows)'),
+                            subtitle: const Text('Download companion application from GitHub Releases'),
+                            trailing: const Icon(Icons.open_in_new, size: 18, color: Color(0xFF38BDF8)),
+                            onTap: () => DownloadPcGuideSheet.show(context),
+                          ),
+                          const Divider(height: 1, indent: 52, endIndent: 16),
+                          ListTile(
+                            leading: const Icon(Icons.code, color: Color(0xFF38BDF8)),
+                            title: const Text('Open Source Project'),
+                            subtitle: const Text(
+                              'Explore source code, releases, and documentation on GitHub',
+                            ),
+                            trailing: const Icon(Icons.open_in_new, size: 18, color: Color(0xFF38BDF8)),
+                            onTap: () => UrlLauncherService.openUrl(
+                              context,
+                              UrlLauncherService.projectRepository,
+                              title: 'DuetView GitHub Repository',
+                            ),
+                          ),
+                          const Divider(height: 1, indent: 52, endIndent: 16),
+                          const ListTile(
+                            leading: Icon(Icons.devices, color: Color(0xFF38BDF8)),
+                            title: Text('Project Scope'),
+                            subtitle: Text(
+                              'DuetView — Secondary display system for Windows and Android providing low-latency desktop extension and mirroring over local Wi-Fi or USB.',
+                            ),
+                          ),
+                          const Divider(height: 1, indent: 52, endIndent: 16),
+                          const ListTile(
                             leading: Icon(Icons.info, color: Color(0xFF38BDF8)),
                             title: Text('Application Version'),
                             subtitle: Text('1.0.0 (MVP Build)'),
                           ),
-                          Divider(height: 1, indent: 52, endIndent: 16),
-                          ListTile(
+                          const Divider(height: 1, indent: 52, endIndent: 16),
+                          const ListTile(
                             leading: Icon(
                               Icons.lock_outline,
                               color: Color(0xFF38BDF8),
@@ -264,14 +294,6 @@ class SettingsScreen extends StatelessWidget {
                             title: Text('Privacy & Security'),
                             subtitle: Text(
                               'Zero cloud servers. Screen transmission and control remain 100% peer-to-peer on your local network.',
-                            ),
-                          ),
-                          Divider(height: 1, indent: 52, endIndent: 16),
-                          ListTile(
-                            leading: Icon(Icons.code, color: Color(0xFF38BDF8)),
-                            title: Text('Open Source Project'),
-                            subtitle: Text(
-                              'Free, non-commercial software built with Flutter & modern Windows systems APIs.',
                             ),
                           ),
                         ],

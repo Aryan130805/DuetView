@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -45,10 +46,12 @@ class _StreamingScreenState extends State<StreamingScreen>
     // Keep screen awake during active secondary display streaming
     widget.decoderBridge?.setKeepScreenOn(true);
 
-    // Force landscape orientation for display streaming
+    // Support seamless auto-rotation across foldables, tablets, and phones
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
     ]);
     if (widget.settingsService.settings.fullScreen) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -399,13 +402,16 @@ class _StreamingScreenState extends State<StreamingScreen>
   Widget _buildTopOverlay(BuildContext context, ConnectionStateModel state) {
     final statusColor = AppTheme.colorForStatus(state.status);
     final settings = widget.settingsService.settings;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 500;
+    final padding = MediaQuery.paddingOf(context);
 
     return Container(
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 8,
+        top: padding.top + 8,
         bottom: 12,
-        left: 16,
-        right: 16,
+        left: max(16.0, padding.left + 8),
+        right: max(16.0, padding.right + 8),
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -452,10 +458,14 @@ class _StreamingScreenState extends State<StreamingScreen>
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   _buildMetricsString(state, settings),
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -471,6 +481,8 @@ class _StreamingScreenState extends State<StreamingScreen>
             tooltip: _touchInputEnabled
                 ? 'Disable Touch Input'
                 : 'Enable Touch Input',
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             onPressed: () {
               setState(() {
                 _touchInputEnabled = !_touchInputEnabled;
@@ -490,6 +502,8 @@ class _StreamingScreenState extends State<StreamingScreen>
             tooltip: _inputMode == TouchInputMode.direct
                 ? 'Mode: Direct Touch (Tap to switch to Trackpad)'
                 : 'Mode: Trackpad (Tap to switch to Direct Touch)',
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             onPressed: () {
               setState(() {
                 _inputMode = _inputMode == TouchInputMode.direct
@@ -507,6 +521,8 @@ class _StreamingScreenState extends State<StreamingScreen>
               size: 20,
             ),
             tooltip: _showKeyboard ? 'Hide Keyboard' : 'Show Keyboard',
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             onPressed: () {
               setState(() {
                 _showKeyboard = !_showKeyboard;
@@ -514,21 +530,30 @@ class _StreamingScreenState extends State<StreamingScreen>
             },
           ),
 
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
 
-          // Disconnect action button
-          OutlinedButton.icon(
-            onPressed: _handleDisconnect,
-            icon: const Icon(Icons.close, size: 16, color: Colors.white),
-            label: const Text(
-              'Disconnect',
-              style: TextStyle(color: Colors.white),
+          // Disconnect action button (Adaptive: icon on compact, labeled button on wider displays)
+          if (isCompact)
+            IconButton(
+              onPressed: _handleDisconnect,
+              icon: const Icon(Icons.power_settings_new, color: Colors.redAccent, size: 20),
+              tooltip: 'Disconnect',
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: _handleDisconnect,
+              icon: const Icon(Icons.close, size: 16, color: Colors.white),
+              label: const Text(
+                'Disconnect',
+                style: TextStyle(color: Colors.white),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white38),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              ),
             ),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.white38),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            ),
-          ),
         ],
       ),
     );

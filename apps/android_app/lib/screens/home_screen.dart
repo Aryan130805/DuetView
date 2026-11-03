@@ -11,6 +11,7 @@ import '../services/saved_pc_storage.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/connection_status_card.dart';
+import '../widgets/download_pc_card.dart';
 import '../widgets/responsive_container.dart';
 import '../widgets/saved_pc_card.dart';
 import 'connection_screen.dart';
@@ -570,6 +571,7 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 32,
@@ -600,13 +602,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            const Text(
-              'DuetView',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                color: Colors.white,
-                letterSpacing: -0.5,
+            const Flexible(
+              child: Text(
+                'DuetView',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -614,7 +619,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           // Circular Help Button
           Container(
-            margin: const EdgeInsets.only(right: 8),
+            margin: const EdgeInsets.only(right: 4),
             decoration: BoxDecoration(
               color: AppTheme.elevatedCard.withValues(alpha: 0.8),
               shape: BoxShape.circle,
@@ -628,7 +633,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           // Circular Settings Button
           Container(
-            margin: const EdgeInsets.only(right: 16),
+            margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
               color: AppTheme.elevatedCard.withValues(alpha: 0.8),
               shape: BoxShape.circle,
@@ -705,6 +710,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // Network Requirements Advisory Card
                     _buildNetworkAdvisoryCard(context),
+                    const SizedBox(height: 16),
+
+                    // Download DuetView PC Companion Card
+                    const DownloadPcCard(),
                     const SizedBox(height: 28),
                   ],
                 );
@@ -771,106 +780,114 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildDualScreenGraphic() {
     return SizedBox(
       height: 90,
-      child: Stack(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
         alignment: Alignment.centerRight,
-        children: [
-          // Laptop Screen (Back)
-          Positioned(
-            left: 0,
-            top: 6,
-            child: Container(
-              width: 82,
-              height: 56,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F1B30),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFF264670), width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.2),
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
+        child: SizedBox(
+          width: 125,
+          height: 90,
+          child: Stack(
+            alignment: Alignment.centerRight,
+            children: [
+              // Laptop Screen (Back)
+              Positioned(
+                left: 0,
+                top: 6,
                 child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF1B2F6E), Color(0xFF0E1A38)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                  width: 82,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F1B30),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF264670), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                        blurRadius: 10,
+                      ),
+                    ],
                   ),
-                  child: Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
                     child: Container(
-                      width: 32,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppTheme.cyanAccent.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(2),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF1B2F6E), Color(0xFF0E1A38)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: Center(
+                        child: Container(
+                          width: 32,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppTheme.cyanAccent.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ),
-          // Laptop Base
-          Positioned(
-            left: 0,
-            top: 61,
-            child: Container(
-              width: 90,
-              height: 6,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E2D44),
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(4)),
-                border: Border.all(color: const Color(0xFF2B3F5D)),
-              ),
-            ),
-          ),
-          // Tablet Screen (Front overlay)
-          Positioned(
-            right: 0,
-            bottom: 6,
-            child: Container(
-              width: 58,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFF18182E),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFF5A448E), width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.violetAccent.withValues(alpha: 0.35),
-                    blurRadius: 12,
-                    offset: const Offset(-2, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
+              // Laptop Base
+              Positioned(
+                left: 0,
+                top: 61,
                 child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF381F66), Color(0xFF1B1638)],
-                      begin: Alignment.topRight,
-                      end: Alignment.bottomLeft,
-                    ),
+                  width: 90,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E2D44),
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(4)),
+                    border: Border.all(color: const Color(0xFF2B3F5D)),
                   ),
-                  child: Center(
-                    child: Icon(
-                      Icons.cast_connected,
-                      size: 16,
-                      color: AppTheme.cyanAccent.withValues(alpha: 0.85),
+                ),
+              ),
+              // Tablet Screen (Front overlay)
+              Positioned(
+                right: 0,
+                bottom: 6,
+                child: Container(
+                  width: 58,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF18182E),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF5A448E), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.violetAccent.withValues(alpha: 0.35),
+                        blurRadius: 12,
+                        offset: const Offset(-2, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF381F66), Color(0xFF1B1638)],
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.cast_connected,
+                          size: 16,
+                          color: AppTheme.cyanAccent.withValues(alpha: 0.85),
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -982,28 +999,34 @@ class _HomeScreenState extends State<HomeScreen> {
                     : AppTheme.secondaryText,
               ),
               const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                      color: isActive ? Colors.white : AppTheme.secondaryText,
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                        color: isActive ? Colors.white : AppTheme.secondaryText,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isActive
-                          ? Colors.white.withValues(alpha: 0.85)
-                          : AppTheme.mutedText,
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isActive
+                            ? Colors.white.withValues(alpha: 0.85)
+                            : AppTheme.mutedText,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -1537,6 +1560,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.bold,
                         color: AppTheme.primaryText,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     const Text(
@@ -1546,6 +1571,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: AppTheme.secondaryText,
                         height: 1.3,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -1605,6 +1632,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.bold,
                         color: AppTheme.primaryText,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     const Text(
@@ -1614,6 +1643,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: AppTheme.secondaryText,
                         height: 1.3,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -1647,12 +1678,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Icon(Icons.lan_outlined, size: 18, color: AppTheme.secondaryText),
                     SizedBox(width: 8),
-                    Text(
-                      'Manual IP',
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryText,
+                    Flexible(
+                      child: Text(
+                        'Manual IP',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryText,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -1715,24 +1749,30 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.bookmark_outline_rounded,
-                      size: 20,
-                      color: AppTheme.cyanAccent,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Saved PCs (${pcs.length})',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryText,
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.bookmark_outline_rounded,
+                        size: 20,
+                        color: AppTheme.cyanAccent,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Saved PCs (${pcs.length})',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryText,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 // + Add PC Pill Button
                 Material(
                   color: Colors.transparent,
@@ -1888,24 +1928,29 @@ class _HomeScreenState extends State<HomeScreen> {
           top: BorderSide(color: AppTheme.border.withValues(alpha: 0.7)),
         ),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(
-            index: 0,
-            icon: Icons.home_rounded,
-            label: 'Home',
+          Expanded(
+            child: _buildNavItem(
+              index: 0,
+              icon: Icons.home_rounded,
+              label: 'Home',
+            ),
           ),
-          _buildNavItem(
-            index: 1,
-            icon: Icons.desktop_windows_rounded,
-            label: 'Display',
+          Expanded(
+            child: _buildNavItem(
+              index: 1,
+              icon: Icons.desktop_windows_rounded,
+              label: 'Display',
+            ),
           ),
-          _buildNavItem(
-            index: 2,
-            icon: Icons.grid_view_rounded,
-            label: 'Tools',
+          Expanded(
+            child: _buildNavItem(
+              index: 2,
+              icon: Icons.grid_view_rounded,
+              label: 'Tools',
+            ),
           ),
         ],
       ),
@@ -1925,7 +1970,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () => _onBottomNavTapped(index),
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
             color: isSelected ? AppTheme.primaryBlue.withValues(alpha: 0.22) : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
@@ -2007,32 +2052,36 @@ class _HomeScreenState extends State<HomeScreen> {
             style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 12, height: 1.45),
           ),
           const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: () {
-                  _dismissIntro();
-                  _openGuideScreen(context);
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.cyanAccent,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  visualDensity: VisualDensity.compact,
+          Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    _dismissIntro();
+                    _openGuideScreen(context);
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.cyanAccent,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  child: const Text('View Full Guide →'),
                 ),
-                child: const Text('View Full Guide →'),
-              ),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: _dismissIntro,
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF94A3B8),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  visualDensity: VisualDensity.compact,
+                TextButton(
+                  onPressed: _dismissIntro,
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF94A3B8),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  child: const Text('Got it'),
                 ),
-                child: const Text('Got it'),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

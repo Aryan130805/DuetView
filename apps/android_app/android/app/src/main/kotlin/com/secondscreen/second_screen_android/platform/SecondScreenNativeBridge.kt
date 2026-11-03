@@ -116,6 +116,26 @@ class SecondScreenNativeBridge(
                     }
                 } ?: result.success(false)
             }
+            "launchUrl" -> {
+                val urlString = call.argument<String>("url")
+                if (urlString.isNullOrBlank()) {
+                    result.success(false)
+                } else {
+                    activity?.let { act ->
+                        try {
+                            val uri = android.net.Uri.parse(urlString)
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri).apply {
+                                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            act.startActivity(intent)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to launch url: $urlString", e)
+                            result.success(false)
+                        }
+                    } ?: result.success(false)
+                }
+            }
             "getMetrics" -> {
                 val m = decoder.getMetrics()
                 result.success(

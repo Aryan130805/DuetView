@@ -212,12 +212,12 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                         ButtonSegment(
                           value: 0,
                           icon: Icon(Icons.radar, size: 18),
-                          label: Text('Discover PCs'),
+                          label: Text('Discover PCs', overflow: TextOverflow.ellipsis),
                         ),
                         ButtonSegment(
                           value: 1,
                           icon: Icon(Icons.edit_note, size: 18),
-                          label: Text('Manual IP'),
+                          label: Text('Manual IP', overflow: TextOverflow.ellipsis),
                         ),
                       ],
                       selected: {_selectedTabIndex},
@@ -344,12 +344,16 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Nearby Windows PCs',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Text(
+                    'Nearby Windows PCs',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
                 if (isSearching)
                   TextButton.icon(
                     onPressed: () => _discoveryService.stopDiscovery(),

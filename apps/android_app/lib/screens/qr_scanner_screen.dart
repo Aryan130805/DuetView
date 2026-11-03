@@ -402,7 +402,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
-                      'Point camera at the QR code on the Windows host console or pairing HTML page.',
+                      'Point camera at the QR code on the DuetView PC application screen.',
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ),
@@ -420,15 +420,21 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   }
 
   Widget _buildViewfinderOverlay() {
-    return Center(
-      child: Container(
-        width: 260,
-        height: 260,
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF38BDF8), width: 2.5),
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final shortestSide = constraints.biggest.shortestSide;
+        final size = (shortestSide * 0.65).clamp(180.0, 320.0);
+        return Center(
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFF38BDF8), width: 2.5),
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        );
+      },
     );
   }
 

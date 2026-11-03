@@ -317,6 +317,19 @@ class SecondScreenDecoderBridge extends ChangeNotifier {
     }
   }
 
+  /// Launches an external URL via the Android system browser.
+  Future<bool> launchUrl(String url) async {
+    try {
+      final res = await _channel.invokeMethod<bool>('launchUrl', {'url': url});
+      return res ?? false;
+    } on MissingPluginException {
+      return false;
+    } catch (e) {
+      debugPrint('Error launching url: $e');
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _stateController.close();

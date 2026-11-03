@@ -33,7 +33,7 @@ class PrimaryButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           foregroundColor: effectiveColor,
           side: BorderSide(color: effectiveColor),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -49,7 +49,7 @@ class PrimaryButton extends StatelessWidget {
         foregroundColor: isDestructive
             ? colorScheme.onError
             : colorScheme.onPrimary,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       child: _buildChild(theme, Colors.white),
@@ -72,10 +72,20 @@ class PrimaryButton extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [Icon(icon, size: 20), const SizedBox(width: 8), Text(label)],
+        children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+        ],
       );
     }
 
-    return Text(label);
+    return Text(label, overflow: TextOverflow.ellipsis, maxLines: 1);
   }
 }
