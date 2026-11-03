@@ -27,9 +27,9 @@ Official pre-compiled binaries are published in the [GitHub Releases](https://gi
 ### Release Asset SHA-256 Checksums (v0.4.0)
 
 ```
-05c5cf02642801b315080cbc8d0749f6a25fba2ee689f18d4064d62695c90b5a  DuetView-Android.apk
-0fe3d3561893dc3257014c56b393dbe5a5c18a3904aab025783b52f8c295a2c6  DuetView-PC-Setup.exe
-7e0b0589de23fc5349ec2c0dedc1f6207fb6f2c9bf76cdbdb9b19ab3b6072667  DuetView-PC-0.4.0-win64.zip
+2997310d46203a6d3ade2a2acc092e6c5f3837f94aefeef39c36c6dd10c7f09f  DuetView-Android.apk
+fd0fc67d4bdbdefa39a216a8e9a60c044b8abeae1421345f8f8249e3bdaa8482  DuetView-PC-Setup.exe
+e43845c30e0f14809fdabf805e863b0488a422c1f8ba7218454ec7522b4be9a2  DuetView-PC-0.4.0-win64.zip
 ```
 
 ---
