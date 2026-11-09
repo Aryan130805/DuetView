@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/connection_state.dart';
 import '../models/saved_pc.dart';
+import '../services/connection_manager.dart';
 import '../services/connection_service.dart';
 import '../services/discovery_service.dart';
+import '../services/pc_health_service.dart';
 import '../services/settings_service.dart';
 import '../services/saved_pc_storage.dart';
 import '../theme/app_theme.dart';
@@ -17,6 +19,8 @@ class ConnectionScreen extends StatefulWidget {
   final ConnectionService connectionService;
   final SettingsService settingsService;
   final SavedPcStorage? savedPcStorage;
+  final SharedConnectionManager? connectionManager;
+  final PcHealthService? pcHealthService;
   final bool autoStartDiscovery;
   final int initialTab;
 
@@ -25,6 +29,8 @@ class ConnectionScreen extends StatefulWidget {
     required this.connectionService,
     required this.settingsService,
     this.savedPcStorage,
+    this.connectionManager,
+    this.pcHealthService,
     this.autoStartDiscovery = false,
     this.initialTab = 0,
   });
@@ -37,6 +43,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
   late final DiscoveryService _discoveryService;
   late final TextEditingController _ipController;
   late final TextEditingController _portController;
+  late final SharedConnectionManager _connectionManager;
   final _formKey = GlobalKey<FormState>();
 
   int _selectedTabIndex = 0;
@@ -46,6 +53,15 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     super.initState();
     _discoveryService = DiscoveryService();
     _selectedTabIndex = widget.initialTab;
+
+    _connectionManager = widget.connectionManager ??
+        SharedConnectionManager(
+          connectionService: widget.connectionService,
+          settingsService: widget.settingsService,
+          savedPcStorage: widget.savedPcStorage ?? SavedPcStorage(),
+          pcHealthService: widget.pcHealthService,
+          decoderBridge: widget.connectionService.decoderBridge,
+        );
 
     final initialIp = widget.settingsService.settings.lastHostAddress;
     final initialPort = widget.settingsService.settings.defaultPort;
@@ -66,88 +82,18 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     super.dispose();
   }
 
-  Future<void> _handleConnect({String? host, int? port}) async {
+  Future<void> _handleConnect({String? host, int? port, String? name}) async {
     final targetHost = host ?? _ipController.text.trim();
     final targetPort =
         port ?? int.tryParse(_portController.text.trim()) ?? 52025;
 
-    // Validate inputs
-    if (!DefaultConnectionService.isValidIpv4(targetHost)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Invalid IPv4 address "$targetHost". Format: 192.168.1.100',
-          ),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      return;
-    }
-
-    if (!DefaultConnectionService.isValidPort(targetPort)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Invalid port "$targetPort". Must be between 1 and 65535.',
-          ),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      return;
-    }
-
-    // Persist last host
-    await widget.settingsService.saveLastHost(targetHost);
-
-    // Attempt connection
-    final success = await widget.connectionService.connectToDevice(
-      targetHost,
-      targetPort,
+    await _connectionManager.connect(
+      context: context,
+      host: targetHost,
+      port: targetPort,
+      pcName: name,
+      replaceCurrentRoute: true,
     );
-
-    if (success && mounted) {
-      // Save or update PC in SavedPcStorage so it appears on HomeScreen
-      if (widget.savedPcStorage != null) {
-        final existing = widget.savedPcStorage!.savedPcs
-            .cast<SavedPc?>()
-            .firstWhere(
-              (p) => p != null && p.endpoints.contains(targetHost),
-              orElse: () => null,
-            );
-
-        if (existing != null) {
-          await widget.savedPcStorage!.updatePcStatus(
-            existing.id,
-            PcOnlineStatus.streaming,
-            reachableEndpoint: targetHost,
-          );
-        } else {
-          final newPc = SavedPc(
-            id: 'pc-$targetHost-$targetPort',
-            name: 'Windows PC ($targetHost)',
-            endpoints: [targetHost],
-            port: targetPort,
-            protocolVersion: 2,
-            lastSeen: DateTime.now(),
-            status: PcOnlineStatus.streaming,
-          );
-          await widget.savedPcStorage!.savePc(newPc);
-        }
-      }
-
-      if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => StreamingScreen(
-            connectionService: widget.connectionService,
-            settingsService: widget.settingsService,
-            decoderBridge: widget.connectionService.decoderBridge,
-          ),
-        ),
-      );
-    }
   }
 
   @override
@@ -403,7 +349,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                       connState.isConnecting &&
                       connState.connectedDevice?.id == dev.id,
                   onConnect: () =>
-                      _handleConnect(host: dev.address, port: dev.port),
+                      _handleConnect(host: dev.address, port: dev.port, name: dev.name),
                 ),
               ),
           ],

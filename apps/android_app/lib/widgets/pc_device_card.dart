@@ -36,10 +36,14 @@ class PcDeviceCard extends StatelessWidget {
         title: Text(
           device.name,
           style: const TextStyle(fontWeight: FontWeight.w600),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
           '${device.address}:${device.port} • ${device.osName}',
           style: theme.textTheme.bodySmall,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         trailing: FilledButton(
           onPressed: isConnecting ? null : onConnect,

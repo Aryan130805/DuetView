@@ -46,12 +46,10 @@ class _StreamingScreenState extends State<StreamingScreen>
     // Keep screen awake during active secondary display streaming
     widget.decoderBridge?.setKeepScreenOn(true);
 
-    // Support seamless auto-rotation across foldables, tablets, and phones
+    // Lock to landscape projection mode by default for secondary desktop display
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
     ]);
     if (widget.settingsService.settings.fullScreen) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);

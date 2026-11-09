@@ -17,6 +17,26 @@ enum class PairAuthStatus : uint32_t {
     MalformedRequest = 3U
 };
 
+enum class InterfaceKind : uint32_t {
+    Wifi = 0U,
+    UsbTethered = 1U,
+    EthernetLan = 2U,
+    Other = 3U
+};
+
+struct NetworkEndpointInfo {
+    std::string ipAddress;
+    std::string subnetMask;
+    std::string broadcastAddress;
+    std::string gateway;
+    std::string adapterName;
+    std::string adapterDescription;
+    InterfaceKind kind{InterfaceKind::Other};
+    uint32_t ifType{0};
+    uint32_t ifIndex{0};
+    bool isUsbTethered{false};
+};
+
 struct QrPayload {
     uint32_t version{1U};
     std::string id;
@@ -58,6 +78,15 @@ public:
 
     /// Returns all active, reachable non-loopback IPv4 endpoints on the host PC
     [[nodiscard]] std::vector<std::string> GetLocalIPv4Endpoints() const;
+
+    /// Returns detailed network interface information including USB tethering status
+    [[nodiscard]] std::vector<NetworkEndpointInfo> GetAllEndpointsDetailed() const;
+
+    /// Returns the active USB-tethered IPv4 address if detected, empty string otherwise
+    [[nodiscard]] std::string GetUsbTetheredEndpoint() const;
+
+    /// Returns the primary active Wi-Fi IPv4 address if detected, empty string otherwise
+    [[nodiscard]] std::string GetWifiEndpoint() const;
 
     /// Generates and returns current active QR JSON payload
     [[nodiscard]] QrPayload GetCurrentPayload() const;

@@ -132,12 +132,18 @@ class ConnectionStatusCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildMetaItem('Target Host', state.connectedDevice?.address ?? '127.0.0.1'),
-                      _buildMetaItem('Port', '${state.connectedDevice?.port ?? 52025}'),
-                      _buildMetaItem(
-                        state.isStreaming ? 'Live FPS' : 'Ping',
-                        state.isStreaming ? '${state.receivedFps} FPS' : (state.pingMs != null ? '${state.pingMs} ms' : '--'),
-                        highlight: state.isStreaming,
+                      Expanded(
+                        child: _buildMetaItem('Target Host', state.connectedDevice?.address ?? '127.0.0.1'),
+                      ),
+                      Expanded(
+                        child: _buildMetaItem('Port', '${state.connectedDevice?.port ?? 52025}'),
+                      ),
+                      Expanded(
+                        child: _buildMetaItem(
+                          state.isStreaming ? 'Live FPS' : 'Ping',
+                          state.isStreaming ? '${state.receivedFps} FPS' : (state.pingMs != null ? '${state.pingMs} ms' : '--'),
+                          highlight: state.isStreaming,
+                        ),
                       ),
                     ],
                   ),
@@ -243,6 +249,8 @@ class ConnectionStatusCard extends StatelessWidget {
             fontWeight: FontWeight.bold,
             color: highlight ? AppTheme.success : AppTheme.primaryText,
           ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
       ],
     );

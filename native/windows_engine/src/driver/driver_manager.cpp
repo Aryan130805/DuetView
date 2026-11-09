@@ -31,6 +31,44 @@ bool StringContainsCaseInsensitive(const std::wstring& haystack, const std::wstr
     return (it != haystack.end());
 }
 
+static std::wstring FindScriptInDir(const std::wstring& driverDir, const std::wstring& scriptName) {
+    std::wstring p1 = driverDir + L"\\" + scriptName;
+    if (PathFileExistsW(p1.c_str())) return p1;
+    std::wstring p2 = driverDir + L"\\scripts\\" + scriptName;
+    if (PathFileExistsW(p2.c_str())) return p2;
+    std::wstring p3 = driverDir + L"\\..\\scripts\\" + scriptName;
+    if (PathFileExistsW(p3.c_str())) return p3;
+    return L"";
+}
+
+static std::wstring ReadVersionFromInf(const std::wstring& infPath) {
+    if (!PathFileExistsW(infPath.c_str())) return L"";
+    wchar_t buf[256] = {0};
+    DWORD res = GetPrivateProfileStringW(L"Version", L"DriverVer", L"", buf, 256, infPath.c_str());
+    if (res > 0) {
+        std::wstring s(buf);
+        size_t comma = s.find(L',');
+        if (comma != std::wstring::npos && comma + 1 < s.length()) {
+            return s.substr(comma + 1);
+        }
+        return s;
+    }
+    return L"";
+}
+
+static bool CheckDriverPackageInRegistry() {
+    HKEY hKey = NULL;
+    LONG res = RegOpenKeyExW(
+        HKEY_LOCAL_MACHINE,
+        L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\WUDF\\Services\\SecondScreenIdd",
+        0, KEY_READ, &hKey);
+    if (res == ERROR_SUCCESS && hKey != NULL) {
+        RegCloseKey(hKey);
+        return true;
+    }
+    return false;
+}
+
 } // namespace
 
 DriverManager::DriverManager() = default;
@@ -54,6 +92,10 @@ std::string DriverManager::StateToString(DriverState state) {
         return "INSTALLED_BUT_MONITOR_NOT_AVAILABLE";
     case DriverState::Ready:
         return "READY";
+    case DriverState::UpdateAvailable:
+        return "UPDATE_AVAILABLE";
+    case DriverState::DetectionFailed:
+        return "DETECTION_FAILED";
     case DriverState::InstallationInProgress:
         return "INSTALLATION_IN_PROGRESS";
     case DriverState::RestartRequired:
@@ -72,14 +114,24 @@ std::string DriverManager::GetStateDescription(DriverState state, uint32_t probl
         return "DuetView Virtual Display Driver is not installed. Extended Display mode requires installation.";
     case DriverState::InstalledButNotOperational: {
         std::ostringstream ss;
-        ss << "Driver is installed but reported device error (Code " << problemCode
-           << "). Open Device Manager to verify device status.";
+        if (problemCode == 31) {
+            ss << "Driver is installed but device reported Problem Code 31 (CM_PROB_FAILED_ADD: WUDF host service failed to start device). Click Repair Driver to reinitialize.";
+        } else if (problemCode != 0) {
+            ss << "Driver is installed but reported device error (Code " << problemCode
+               << "). Open Device Manager or click Repair Driver.";
+        } else {
+            ss << "Driver package is present in Windows, but virtual display device node is not active. Click Repair Driver to recreate node.";
+        }
         return ss.str();
     }
     case DriverState::InstalledButMonitorNotAvailable:
-        return "Driver is active, but virtual display is not attached. Press Win + P and choose 'Extend'.";
+        return "Driver is installed and operational. Virtual display is not extended (Press Win + P and choose 'Extend').";
     case DriverState::Ready:
-        return "Driver is operational and virtual display is ready for streaming.";
+        return "Latest driver already installed and operational.";
+    case DriverState::UpdateAvailable:
+        return "A newer virtual display driver package is available. Click Update Driver to upgrade.";
+    case DriverState::DetectionFailed:
+        return "Unable to verify Windows display driver status via SetupAPI. Click Retry to re-query.";
     case DriverState::InstallationInProgress:
         return "Installation in progress...";
     case DriverState::RestartRequired:
@@ -134,8 +186,8 @@ DriverInfo DriverManager::DetectDriverState() {
     // Query PnP Display Class devices
     HDEVINFO hDevInfo = SetupDiGetClassDevsW(&GUID_DISPLAY_CLASS, nullptr, nullptr, 0);
     if (hDevInfo == INVALID_HANDLE_VALUE) {
-        info.state = DriverState::NotInstalled;
-        info.diagnosticMessage = "Unable to enumerate Windows display devices.";
+        info.state = DriverState::DetectionFailed;
+        info.diagnosticMessage = GetStateDescription(info.state, 0);
         return info;
     }
 
@@ -166,7 +218,8 @@ DriverInfo DriverManager::DetectDriverState() {
         if (SetupDiGetDeviceRegistryPropertyW(
                 hDevInfo, &devInfoData, SPDRP_DEVICEDESC,
                 nullptr, reinterpret_cast<PBYTE>(descBuffer), sizeof(descBuffer), nullptr)) {
-            if (StringContainsCaseInsensitive(descBuffer, L"SecondScreen")) {
+            if (StringContainsCaseInsensitive(descBuffer, L"SecondScreen") ||
+                StringContainsCaseInsensitive(descBuffer, L"DuetView")) {
                 foundDevice = true;
                 info.deviceDesc = descBuffer;
             }
@@ -181,19 +234,40 @@ DriverInfo DriverManager::DetectDriverState() {
             info.devNodeStatus = status;
             info.problemCode = problemNumber;
 
+            // Query installed driver version from registry
+            HKEY hDriverKey = SetupDiOpenDevRegKey(hDevInfo, &devInfoData, DICS_FLAG_GLOBAL, 0, DIREG_DRV, KEY_READ);
+            if (hDriverKey != INVALID_HANDLE_VALUE && hDriverKey != NULL) {
+                wchar_t verBuf[128] = {0};
+                DWORD verBytes = sizeof(verBuf);
+                if (RegQueryValueExW(hDriverKey, L"DriverVersion", nullptr, nullptr, reinterpret_cast<LPBYTE>(verBuf), &verBytes) == ERROR_SUCCESS) {
+                    info.installedVersion = verBuf;
+                }
+                RegCloseKey(hDriverKey);
+            }
+
+            std::wstring infPath = FindDriverInfPath();
+            info.bundledVersion = ReadVersionFromInf(infPath);
+
             if (cr == CR_SUCCESS) {
                 if (status & DN_HAS_PROBLEM) {
                     info.state = DriverState::InstalledButNotOperational;
                     info.diagnosticMessage = GetStateDescription(info.state, problemNumber);
                 } else if (status & DN_STARTED) {
-                    // Device is started. Now check if virtual display output is active.
-                    int monitorCount = GetSystemMetrics(SM_CMONITORS);
-                    if (monitorCount > 1) {
-                        info.state = DriverState::Ready;
+                    // Check if an update is available compared to bundled driver version
+                    if (!info.installedVersion.empty() && !info.bundledVersion.empty() &&
+                        info.bundledVersion > info.installedVersion) {
+                        info.state = DriverState::UpdateAvailable;
                         info.diagnosticMessage = GetStateDescription(info.state, 0);
                     } else {
-                        info.state = DriverState::InstalledButMonitorNotAvailable;
-                        info.diagnosticMessage = GetStateDescription(info.state, 0);
+                        // Device is started and healthy. Check if virtual display output is active.
+                        int monitorCount = GetSystemMetrics(SM_CMONITORS);
+                        if (monitorCount > 1) {
+                            info.state = DriverState::Ready;
+                            info.diagnosticMessage = GetStateDescription(info.state, 0);
+                        } else {
+                            info.state = DriverState::InstalledButMonitorNotAvailable;
+                            info.diagnosticMessage = GetStateDescription(info.state, 0);
+                        }
                     }
                 } else {
                     info.state = DriverState::InstalledButNotOperational;
@@ -210,8 +284,13 @@ DriverInfo DriverManager::DetectDriverState() {
     SetupDiDestroyDeviceInfoList(hDevInfo);
 
     if (!foundDevice) {
-        info.state = DriverState::NotInstalled;
-        info.diagnosticMessage = GetStateDescription(info.state, 0);
+        if (CheckDriverPackageInRegistry()) {
+            info.state = DriverState::InstalledButNotOperational;
+            info.diagnosticMessage = "DuetView driver package is installed in Windows, but virtual display device node is not active. Click Repair Driver to recreate node.";
+        } else {
+            info.state = DriverState::NotInstalled;
+            info.diagnosticMessage = GetStateDescription(info.state, 0);
+        }
     }
 
     return info;
@@ -284,15 +363,15 @@ bool DriverManager::InstallDriver(uint32_t& outExitCode, std::string& outErrorMe
     }
 
     // Launch elevated installer via ShellExecuteExW with "runas" requesting Administrator permission
-    std::wstring batPath = std::wstring(driverDir) + L"\\install_driver.bat";
-    bool hasBat = (PathFileExistsW(batPath.c_str()) != FALSE);
+    std::wstring batPath = FindScriptInDir(driverDir, L"install_driver.bat");
+    bool hasBat = !batPath.empty();
 
     std::wstring fileToExec;
     std::wstring execParams;
 
     if (hasBat) {
         fileToExec = L"cmd.exe";
-        execParams = L"/c \"\"" + batPath + L"\"\"";
+        execParams = L"/c \"\"" + batPath + L"\" --silent\"";
     } else {
         fileToExec = L"pnputil.exe";
         execParams = L"/add-driver \"" + infPath + L"\" /install";

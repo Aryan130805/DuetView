@@ -49,6 +49,8 @@ public:
     void Stop();
     [[nodiscard]] bool IsRunning() const;
     [[nodiscard]] HostState GetState() const;
+    [[nodiscard]] secondscreen::engine::ClientStatus GetClientStatus() const;
+    [[nodiscard]] std::string GetClientIp() const;
     [[nodiscard]] std::string GetLastError() const;
     [[nodiscard]] uint32_t GetProcessId() const;
 

@@ -96,6 +96,7 @@ class MockConnectionService extends ChangeNotifier
     String address,
     int port, {
     String? pcName,
+    bool isUsb = false,
   }) async {
     return true;
   }

@@ -46,7 +46,7 @@ class MockConnectionService extends ChangeNotifier implements ConnectionService 
   }) async => true;
 
   @override
-  Future<bool> connectToDevice(String address, int port, {String? pcName}) async => true;
+  Future<bool> connectToDevice(String address, int port, {String? pcName, bool isUsb = false}) async => true;
 
   @override
   Future<void> disconnect({String? reason}) async {}

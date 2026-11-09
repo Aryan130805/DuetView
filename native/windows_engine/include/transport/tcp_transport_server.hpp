@@ -32,6 +32,7 @@ public:
     bool SendPacket(const protocol::ProtocolHeader& header, std::span<const uint8_t> payload) override;
     void Stop() override;
     [[nodiscard]] bool IsClientConnected() const noexcept override;
+    [[nodiscard]] std::string GetClientIp() const;
 
 private:
     void AcceptLoop();
@@ -40,6 +41,7 @@ private:
 
     std::atomic<bool> isRunning_{false};
     std::atomic<bool> isClientConnected_{false};
+    std::string clientIp_{};
     SOCKET listenSocket_{INVALID_SOCKET};
     SOCKET clientSocket_{INVALID_SOCKET};
 

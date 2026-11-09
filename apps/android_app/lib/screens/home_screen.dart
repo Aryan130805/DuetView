@@ -4,11 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/saved_pc.dart';
+import '../services/connection_manager.dart';
 import '../services/connection_service.dart';
 import '../services/decoder_bridge.dart';
 import '../services/pc_health_service.dart';
 import '../services/saved_pc_storage.dart';
 import '../services/settings_service.dart';
+import '../services/usb_tether_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/connection_status_card.dart';
 import '../widgets/download_pc_card.dart';
@@ -54,9 +56,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late final TextEditingController _usbHostController;
   late final TextEditingController _usbPortController;
+  late final SharedConnectionManager _connectionManager;
   bool _isUsbConnecting = false;
   String? _detectedUsbInterface;
   bool _showUsbAdvanced = false;
+  bool _isUsbHostVerified = false;
+  String? _usbDiagnosticMessage;
 
   @override
   void initState() {
@@ -65,17 +70,26 @@ class _HomeScreenState extends State<HomeScreen> {
     if (widget.savedPcStorage == null) {
       _storage.load();
     }
+    _connectionManager = SharedConnectionManager(
+      connectionService: widget.connectionService,
+      settingsService: widget.settingsService,
+      savedPcStorage: _storage,
+      pcHealthService: widget.pcHealthService,
+      decoderBridge: widget.decoderBridge ?? widget.connectionService.decoderBridge,
+    );
     _loadIntroStatus();
     _loadConnectionMode();
 
     final lastHost = widget.settingsService.settings.lastHostAddress;
+    final isLikelyUsbIp =
+        lastHost.startsWith('192.168.42.') || lastHost.startsWith('192.168.44.');
     _usbHostController = TextEditingController(
-      text: lastHost.isNotEmpty ? lastHost : '192.168.42.129',
+      text: isLikelyUsbIp ? lastHost : '',
     );
     _usbPortController = TextEditingController(
       text: widget.settingsService.settings.defaultPort.toString(),
     );
-    _checkUsbInterfaces();
+    _refreshUsbDiscovery();
   }
 
   @override
@@ -93,6 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _connectionMode = ConnectionMode.usb;
         });
+        _refreshUsbDiscovery();
       }
     } catch (_) {}
   }
@@ -103,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _connectionMode = mode;
     });
     if (mode == ConnectionMode.usb) {
-      _checkUsbInterfaces();
+      _refreshUsbDiscovery();
     }
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -111,45 +126,35 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {}
   }
 
-  Future<void> _checkUsbInterfaces() async {
+  Future<void> _refreshUsbDiscovery() async {
     try {
-      final interfaces = await NetworkInterface.list(
-        includeLoopback: false,
-        type: InternetAddressType.IPv4,
-      );
-      for (final iface in interfaces) {
-        final name = iface.name.toLowerCase();
-        if (name.contains('rndis') ||
-            name.contains('usb') ||
-            name.contains('ncm') ||
-            name.contains('eth')) {
-          for (final addr in iface.addresses) {
-            final ip = addr.address;
-            final parts = ip.split('.');
-            if (parts.length == 4) {
-              String defaultHost;
-              if (parts[3] == '129') {
-                defaultHost = '${parts[0]}.${parts[1]}.${parts[2]}.1';
-              } else if (parts[3] == '1') {
-                defaultHost = '${parts[0]}.${parts[1]}.${parts[2]}.2';
-              } else {
-                defaultHost = '${parts[0]}.${parts[1]}.${parts[2]}.1';
-              }
-              if (mounted) {
-                setState(() {
-                  _detectedUsbInterface = '${iface.name} ($ip)';
-                  if (_usbHostController.text.trim() == '192.168.42.129' ||
-                      _usbHostController.text.trim().isEmpty) {
-                    _usbHostController.text = defaultHost;
-                  }
-                });
-              }
-              return;
+      final defaultPort = int.tryParse(_usbPortController.text.trim()) ?? 52025;
+      final res = await UsbTetherService.discoverUsbHost(port: defaultPort);
+      if (!mounted) return;
+
+      setState(() {
+        if (res.isTetheringActive) {
+          _detectedUsbInterface = '${res.interfaceName} (${res.androidIp})';
+          if (res.resolvedHostIp != null) {
+            final currentText = _usbHostController.text.trim();
+            if (currentText.isEmpty ||
+                currentText == '192.168.42.129' ||
+                currentText == res.androidIp ||
+                res.isHostVerified) {
+              _usbHostController.text = res.resolvedHostIp!;
             }
           }
+          _isUsbHostVerified = res.isHostVerified;
+          _usbDiagnosticMessage = res.diagnosticMessage;
+        } else {
+          _detectedUsbInterface = null;
+          _isUsbHostVerified = false;
+          _usbDiagnosticMessage = res.diagnosticMessage;
         }
-      }
-    } catch (_) {}
+      });
+    } catch (e) {
+      debugPrint('HomeScreen: Error during USB discovery: $e');
+    }
   }
 
   Future<void> _openTetheringSettings(BuildContext context) async {
@@ -171,13 +176,32 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _connectViaUsb(BuildContext context) async {
-    final host = _usbHostController.text.trim();
+    String host = _usbHostController.text.trim();
     final port = int.tryParse(_usbPortController.text.trim()) ?? 52025;
+
+    // If host text is empty, attempt an immediate auto-discovery scan
+    if (host.isEmpty || host == '192.168.42.129') {
+      await _refreshUsbDiscovery();
+      host = _usbHostController.text.trim();
+    }
 
     if (!DefaultConnectionService.isValidIpv4(host)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a valid IPv4 address (e.g. 192.168.42.129).'),
+          content: Text('Please enter a valid IPv4 address (e.g. 192.168.42.1).'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+      return;
+    }
+
+    // Guard against attempting to connect to Android's own IP
+    if (await UsbTetherService.isLocalAndroidIp(host)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Cannot connect to Android\'s own IP ($host). Please enter the Windows PC IP shown in DuetView PC.',
+          ),
           backgroundColor: AppTheme.error,
         ),
       );
@@ -189,36 +213,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final ok = await widget.connectionService.connectToDevice(
-        host,
-        port,
+      await _connectionManager.connect(
+        context: context,
+        host: host,
+        port: port,
         pcName: 'Windows PC (USB)',
+        isUsb: true,
       );
-
-      if (ok) {
-        await widget.settingsService.saveLastHost(host);
-        if (mounted && context.mounted) {
-          _openStreamingScreen(context);
-        }
-      } else {
-        if (mounted && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Could not connect to PC via USB on $host:$port.\n'
-                'Please ensure USB Tethering is enabled and DuetView PC is running.',
-              ),
-              backgroundColor: AppTheme.error,
-              duration: const Duration(seconds: 5),
-              action: SnackBarAction(
-                label: 'Setup Guide',
-                textColor: Colors.white,
-                onPressed: () => _openGuideScreen(context),
-              ),
-            ),
-          );
-        }
-      }
     } finally {
       if (mounted) {
         setState(() {
@@ -262,6 +263,8 @@ class _HomeScreenState extends State<HomeScreen> {
           connectionService: widget.connectionService,
           settingsService: widget.settingsService,
           savedPcStorage: _storage,
+          connectionManager: _connectionManager,
+          pcHealthService: widget.pcHealthService,
           autoStartDiscovery: autoStartDiscovery,
           initialTab: manualOnly ? 1 : 0,
         ),
@@ -315,55 +318,36 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     ).then((_) {
       widget.pcHealthService?.setActivelyStreamingPc(null);
+      widget.pcHealthService?.resumeHealthChecks();
     });
   }
 
   Future<void> _connectToSavedPc(BuildContext context, SavedPc pc) async {
     if (pc.endpoints.isEmpty) return;
 
-    widget.pcHealthService?.setActivelyStreamingPc(pc.id);
-
-    bool success = false;
-    String? workingEndpoint;
-
-    for (final endpoint in pc.endpoints) {
-      final ok = await widget.connectionService.connectToDevice(
-        endpoint,
-        pc.port,
-        pcName: pc.name,
-      );
-      if (ok) {
-        success = true;
-        workingEndpoint = endpoint;
-        break;
-      }
+    final endpoints = List<String>.from(pc.endpoints);
+    if (_connectionMode == ConnectionMode.usb) {
+      // Prioritize USB tethered subnets (192.168.42.x, 192.168.44.x, etc.)
+      endpoints.sort((a, b) {
+        final aIsUsb = a.startsWith('192.168.42.') || a.startsWith('192.168.44.');
+        final bIsUsb = b.startsWith('192.168.42.') || b.startsWith('192.168.44.');
+        if (aIsUsb && !bIsUsb) return -1;
+        if (!aIsUsb && bIsUsb) return 1;
+        return 0;
+      });
     }
 
-    if (success && workingEndpoint != null) {
-      await _storage.updatePcStatus(
-        pc.id,
-        PcOnlineStatus.streaming,
-        reachableEndpoint: workingEndpoint,
+    for (final endpoint in endpoints) {
+      final res = await _connectionManager.connect(
+        context: context,
+        host: endpoint,
+        port: pc.port,
+        pcName: pc.name,
+        pcId: pc.id,
+        isUsb: _connectionMode == ConnectionMode.usb,
       );
-
-      if (mounted && context.mounted) {
-        _openStreamingScreen(context);
-      }
-    } else {
-      widget.pcHealthService?.setActivelyStreamingPc(null);
-      await _storage.updatePcStatus(pc.id, PcOnlineStatus.offline);
-
-      if (mounted && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Could not connect to ${pc.name} on ${pc.endpoints.join(', ')}:${pc.port}. '
-              'Ensure DuetView PC is running on your computer.',
-            ),
-            backgroundColor: AppTheme.error,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+      if (res.success) {
+        return;
       }
     }
   }
@@ -1158,41 +1142,70 @@ class _HomeScreenState extends State<HomeScreen> {
               color: AppTheme.elevatedCard.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: _detectedUsbInterface != null
-                    ? AppTheme.success.withValues(alpha: 0.4)
-                    : AppTheme.border.withValues(alpha: 0.6),
+                color: _isUsbHostVerified
+                    ? AppTheme.success.withValues(alpha: 0.7)
+                    : (_detectedUsbInterface != null
+                        ? AppTheme.cyanAccent.withValues(alpha: 0.5)
+                        : AppTheme.border.withValues(alpha: 0.6)),
               ),
             ),
             child: Row(
               children: [
                 Icon(
-                  _detectedUsbInterface != null
+                  _isUsbHostVerified
                       ? Icons.check_circle_rounded
-                      : Icons.info_outline_rounded,
-                  size: 18,
-                  color: _detectedUsbInterface != null
+                      : (_detectedUsbInterface != null
+                          ? Icons.usb_rounded
+                          : Icons.cable_rounded),
+                  size: 20,
+                  color: _isUsbHostVerified
                       ? AppTheme.success
-                      : const Color(0xFFFBBF24),
+                      : (_detectedUsbInterface != null
+                          ? AppTheme.cyanAccent
+                          : const Color(0xFFFBBF24)),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    _detectedUsbInterface != null
-                        ? 'Tethering Active: $_detectedUsbInterface'
-                        : 'Connect USB cable and turn on USB Tethering in phone Settings.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _detectedUsbInterface != null
-                          ? AppTheme.primaryText
-                          : AppTheme.secondaryText,
-                      height: 1.3,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _isUsbHostVerified
+                            ? 'PC Verified over USB Cable'
+                            : (_detectedUsbInterface != null
+                                ? 'Tethering Active: $_detectedUsbInterface'
+                                : 'USB Tethering Disconnected'),
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.bold,
+                          color: _isUsbHostVerified
+                              ? AppTheme.success
+                              : (_detectedUsbInterface != null
+                                  ? AppTheme.primaryText
+                                  : const Color(0xFFFBBF24)),
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _usbDiagnosticMessage ??
+                            (_detectedUsbInterface != null
+                                ? 'Ready to connect via USB tethered network.'
+                                : 'Connect USB cable and enable USB Tethering in Android settings.'),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.secondaryText,
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.refresh_rounded, size: 18, color: AppTheme.mutedText),
-                  tooltip: 'Refresh USB Interfaces',
-                  onPressed: _checkUsbInterfaces,
+                  icon: const Icon(Icons.refresh_rounded, size: 20, color: AppTheme.cyanAccent),
+                  tooltip: 'Re-scan USB & Detect PC',
+                  onPressed: _refreshUsbDiscovery,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -1215,25 +1228,31 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.laptop_chromebook_rounded,
-                          size: 16,
-                          color: AppTheme.cyanAccent,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Host IP: ${_usbHostController.text.trim().isEmpty ? "Auto (192.168.42.129)" : _usbHostController.text.trim()}:${_usbPortController.text.trim()}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primaryText,
-                            fontFamily: 'monospace',
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.laptop_chromebook_rounded,
+                            size: 16,
+                            color: AppTheme.cyanAccent,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Host IP: ${_usbHostController.text.trim().isEmpty ? "Detecting..." : _usbHostController.text.trim()}:${_usbPortController.text.trim()}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.primaryText,
+                                fontFamily: 'monospace',
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 6),
                     TextButton(
                       onPressed: () {
                         setState(() {

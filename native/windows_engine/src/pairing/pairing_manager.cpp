@@ -329,16 +329,14 @@ PairAuthStatus PairingManager::ValidatePairingToken(const std::string& token) co
     return PairAuthStatus::InvalidToken;
 }
 
-std::vector<std::string> PairingManager::GetLocalIPv4Endpoints() const {
-    std::vector<std::string> wifiEndpoints;
-    std::vector<std::string> lanEndpoints;
-    std::vector<std::string> otherEndpoints;
+std::vector<NetworkEndpointInfo> PairingManager::GetAllEndpointsDetailed() const {
+    std::vector<NetworkEndpointInfo> result;
 
     ULONG outBufLen = 15000;
     std::vector<uint8_t> buffer(outBufLen);
     PIP_ADAPTER_ADDRESSES pAddresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.data());
 
-    ULONG flags = GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+    ULONG flags = GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
     DWORD ret = GetAdaptersAddresses(AF_INET, flags, nullptr, pAddresses, &outBufLen);
 
     if (ret == ERROR_BUFFER_OVERFLOW) {
@@ -352,19 +350,32 @@ std::vector<std::string> PairingManager::GetLocalIPv4Endpoints() const {
             if (pCurr->OperStatus != IfOperStatusUp) continue;
             if (pCurr->IfType == IF_TYPE_SOFTWARE_LOOPBACK) continue;
 
-            // Check adapter name / description for virtual adapters
+            // Check adapter name / description for virtual vs hardware adapters
             std::wstring desc = pCurr->Description ? pCurr->Description : L"";
             std::wstring friendly = pCurr->FriendlyName ? pCurr->FriendlyName : L"";
             std::wstring combined = desc + L" " + friendly;
             for (auto& ch : combined) ch = static_cast<wchar_t>(towlower(ch));
 
-            const bool isVirtual = (combined.find(L"hyper-v") != std::wstring::npos ||
-                                    combined.find(L"vethernet") != std::wstring::npos ||
-                                    combined.find(L"virtual") != std::wstring::npos ||
-                                    combined.find(L"vmware") != std::wstring::npos ||
-                                    combined.find(L"wsl") != std::wstring::npos ||
-                                    combined.find(L"vpn") != std::wstring::npos ||
-                                    combined.find(L"tap") != std::wstring::npos);
+            const bool isVm = (combined.find(L"hyper-v") != std::wstring::npos ||
+                               combined.find(L"vethernet") != std::wstring::npos ||
+                               combined.find(L"vmware") != std::wstring::npos ||
+                               combined.find(L"virtualbox") != std::wstring::npos ||
+                               combined.find(L"wsl") != std::wstring::npos ||
+                               combined.find(L"vpn") != std::wstring::npos ||
+                               combined.find(L"tap-") != std::wstring::npos);
+
+            // Extract gateway if available
+            std::string gwStr;
+            if (pCurr->FirstGatewayAddress && pCurr->FirstGatewayAddress->Address.lpSockaddr) {
+                sockaddr* gwSa = pCurr->FirstGatewayAddress->Address.lpSockaddr;
+                if (gwSa->sa_family == AF_INET) {
+                    sockaddr_in* sinGw = reinterpret_cast<sockaddr_in*>(gwSa);
+                    char bufGw[INET_ADDRSTRLEN];
+                    if (inet_ntop(AF_INET, &(sinGw->sin_addr), bufGw, sizeof(bufGw))) {
+                        gwStr = bufGw;
+                    }
+                }
+            }
 
             for (PIP_ADAPTER_UNICAST_ADDRESS pUni = pCurr->FirstUnicastAddress; pUni != nullptr; pUni = pUni->Next) {
                 sockaddr* sa = pUni->Address.lpSockaddr;
@@ -375,13 +386,64 @@ std::vector<std::string> PairingManager::GetLocalIPv4Endpoints() const {
                         std::string ip(ipStr);
                         // Filter out loopback and APIPA auto-config (169.254.*)
                         if (!ip.empty() && ip != "127.0.0.1" && ip.rfind("169.254.", 0) != 0) {
-                            if (pCurr->IfType == IF_TYPE_IEEE80211) {
-                                wifiEndpoints.push_back(ip);
-                            } else if (!isVirtual && pCurr->IfType == IF_TYPE_ETHERNET_CSMACD) {
-                                lanEndpoints.push_back(ip);
-                            } else {
-                                otherEndpoints.push_back(ip);
+                            NetworkEndpointInfo info;
+                            info.ipAddress = ip;
+                            info.gateway = gwStr;
+                            info.ifType = pCurr->IfType;
+                            info.ifIndex = pCurr->IfIndex;
+                            info.adapterName = std::string(friendly.begin(), friendly.end());
+                            info.adapterDescription = std::string(desc.begin(), desc.end());
+
+                            // Calculate subnet mask and broadcast address
+                            uint8_t prefixLen = pUni->OnLinkPrefixLength;
+                            uint32_t maskVal = (prefixLen == 0) ? 0 : (~0U << (32 - prefixLen));
+                            uint32_t netMask = htonl(maskVal);
+                            char maskStr[INET_ADDRSTRLEN];
+                            in_addr inMask;
+                            inMask.s_addr = netMask;
+                            if (inet_ntop(AF_INET, &inMask, maskStr, sizeof(maskStr))) {
+                                info.subnetMask = maskStr;
                             }
+
+                            uint32_t ipVal = sin->sin_addr.s_addr;
+                            uint32_t bcastVal = ipVal | (~netMask);
+                            char bcastStr[INET_ADDRSTRLEN];
+                            in_addr inBcast;
+                            inBcast.s_addr = bcastVal;
+                            if (inet_ntop(AF_INET, &inBcast, bcastStr, sizeof(bcastStr))) {
+                                info.broadcastAddress = bcastStr;
+                            }
+
+                            // Identify USB Tethering vs Wi-Fi vs Ethernet LAN
+                            const bool hasUsbKeyword = (combined.find(L"remote ndis") != std::wstring::npos ||
+                                                        combined.find(L"rndis") != std::wstring::npos ||
+                                                        combined.find(L"usb ethernet") != std::wstring::npos ||
+                                                        combined.find(L"usb") != std::wstring::npos ||
+                                                        combined.find(L"ncm") != std::wstring::npos ||
+                                                        combined.find(L"cdc") != std::wstring::npos ||
+                                                        combined.find(L"tether") != std::wstring::npos ||
+                                                        combined.find(L"sharing") != std::wstring::npos ||
+                                                        combined.find(L"android") != std::wstring::npos ||
+                                                        combined.find(L"apple mobile") != std::wstring::npos ||
+                                                        combined.find(L"gadget") != std::wstring::npos);
+
+                            const bool hasTetherSubnet = (ip.rfind("192.168.42.", 0) == 0 ||
+                                                          ip.rfind("192.168.44.", 0) == 0 ||
+                                                          ip.rfind("192.168.43.", 0) == 0 ||
+                                                          (!gwStr.empty() && gwStr.rfind("192.168.42.", 0) == 0));
+
+                            if (!isVm && (hasUsbKeyword || hasTetherSubnet)) {
+                                info.isUsbTethered = true;
+                                info.kind = InterfaceKind::UsbTethered;
+                            } else if (pCurr->IfType == IF_TYPE_IEEE80211) {
+                                info.kind = InterfaceKind::Wifi;
+                            } else if (!isVm && pCurr->IfType == IF_TYPE_ETHERNET_CSMACD) {
+                                info.kind = InterfaceKind::EthernetLan;
+                            } else {
+                                info.kind = InterfaceKind::Other;
+                            }
+
+                            result.push_back(std::move(info));
                         }
                     }
                 }
@@ -389,19 +451,59 @@ std::vector<std::string> PairingManager::GetLocalIPv4Endpoints() const {
         }
     }
 
+    return result;
+}
+
+std::vector<std::string> PairingManager::GetLocalIPv4Endpoints() const {
+    const auto detailed = GetAllEndpointsDetailed();
+    std::vector<std::string> usbIps;
+    std::vector<std::string> wifiIps;
+    std::vector<std::string> lanIps;
+    std::vector<std::string> otherIps;
+
+    for (const auto& ep : detailed) {
+        if (ep.isUsbTethered) {
+            usbIps.push_back(ep.ipAddress);
+        } else if (ep.kind == InterfaceKind::Wifi) {
+            wifiIps.push_back(ep.ipAddress);
+        } else if (ep.kind == InterfaceKind::EthernetLan) {
+            lanIps.push_back(ep.ipAddress);
+        } else {
+            otherIps.push_back(ep.ipAddress);
+        }
+    }
+
     std::vector<std::string> endpoints;
-    // Wi-Fi is top priority for wireless companion display
-    endpoints.insert(endpoints.end(), wifiEndpoints.begin(), wifiEndpoints.end());
-    // Physical Ethernet LAN is second priority
-    endpoints.insert(endpoints.end(), lanEndpoints.begin(), lanEndpoints.end());
+    // USB tethered interface is top priority for direct zero-latency hardware link
+    endpoints.insert(endpoints.end(), usbIps.begin(), usbIps.end());
+    // Wi-Fi is second priority for wireless companion display
+    endpoints.insert(endpoints.end(), wifiIps.begin(), wifiIps.end());
+    // Physical Ethernet LAN
+    endpoints.insert(endpoints.end(), lanIps.begin(), lanIps.end());
     // Fallbacks
-    endpoints.insert(endpoints.end(), otherEndpoints.begin(), otherEndpoints.end());
+    endpoints.insert(endpoints.end(), otherIps.begin(), otherIps.end());
 
     if (endpoints.empty()) {
         endpoints.push_back("127.0.0.1");
     }
 
     return endpoints;
+}
+
+std::string PairingManager::GetUsbTetheredEndpoint() const {
+    const auto detailed = GetAllEndpointsDetailed();
+    for (const auto& ep : detailed) {
+        if (ep.isUsbTethered) return ep.ipAddress;
+    }
+    return "";
+}
+
+std::string PairingManager::GetWifiEndpoint() const {
+    const auto detailed = GetAllEndpointsDetailed();
+    for (const auto& ep : detailed) {
+        if (ep.kind == InterfaceKind::Wifi) return ep.ipAddress;
+    }
+    return "";
 }
 
 QrPayload PairingManager::GetCurrentPayload() const {

@@ -544,17 +544,23 @@ void DrawCardContainer(Gdiplus::Graphics& g, const Gdiplus::RectF& rc, const wch
         DrawVectorPhone(g, badgeX + 8.0f, badgeY + 7.0f, 16.0f, Gdiplus::Color(255, 56, 189, 248));
     }
 
-    // Title
+    // Title & Subtitle with bounded RectF and string trimming to prevent overflow
+    Gdiplus::StringFormat trimFmt;
+    trimFmt.SetTrimming(Gdiplus::StringTrimmingEllipsisCharacter);
+    trimFmt.SetFormatFlags(Gdiplus::StringFormatFlagsNoClip);
+
     float titleX = badgeX + badgeSize + 12.0f;
+    float maxTextW = (rc.Width > (titleX - rc.X + 16.0f)) ? (rc.Width - (titleX - rc.X) - 16.0f) : 100.0f;
+
     Gdiplus::Font titleFont(L"Segoe UI", 12.5f, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
     Gdiplus::SolidBrush titleBrush(Gdiplus::Color(255, 255, 255, 255));
-    g.DrawString(title, -1, &titleFont, Gdiplus::PointF(titleX, rc.Y + 12.0f), &titleBrush);
+    g.DrawString(title, -1, &titleFont, Gdiplus::RectF(titleX, rc.Y + 12.0f, maxTextW, 22.0f), &trimFmt, &titleBrush);
 
     // Subtitle (below title, clean vertical spacing)
     if (subtitle && wcslen(subtitle) > 0) {
         Gdiplus::Font subFont(L"Segoe UI", 9.0f, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
         Gdiplus::SolidBrush subBrush(Gdiplus::Color(255, 126, 145, 173)); // #7E91AD
-        g.DrawString(subtitle, -1, &subFont, Gdiplus::PointF(titleX, rc.Y + 34.0f), &subBrush);
+        g.DrawString(subtitle, -1, &subFont, Gdiplus::RectF(titleX, rc.Y + 34.0f, maxTextW, 20.0f), &trimFmt, &subBrush);
     }
 }
 
@@ -872,8 +878,22 @@ void UpdateTabVisibility() {
     bool isDriverReady = (g_driverInfo.state == DriverState::Ready ||
                           g_driverInfo.state == DriverState::InstalledButMonitorNotAvailable);
     if (g_hBtnInstallDriver && g_hBtnUninstallDriver) {
-        ShowWindow(g_hBtnInstallDriver, (isHome && !isDriverReady) ? SW_SHOW : SW_HIDE);
-        ShowWindow(g_hBtnUninstallDriver, (isHome && isDriverReady) ? SW_SHOW : SW_HIDE);
+        if (isDriverReady) {
+            ShowWindow(g_hBtnInstallDriver, SW_HIDE);
+            ShowWindow(g_hBtnUninstallDriver, isHome ? SW_SHOW : SW_HIDE);
+        } else {
+            ShowWindow(g_hBtnUninstallDriver, SW_HIDE);
+            if (g_driverInfo.state == DriverState::InstalledButNotOperational) {
+                SetWindowTextW(g_hBtnInstallDriver, L"Repair Virtual Display Driver");
+            } else if (g_driverInfo.state == DriverState::UpdateAvailable) {
+                SetWindowTextW(g_hBtnInstallDriver, L"Update Virtual Display Driver");
+            } else if (g_driverInfo.state == DriverState::DetectionFailed) {
+                SetWindowTextW(g_hBtnInstallDriver, L"Retry Driver Detection");
+            } else {
+                SetWindowTextW(g_hBtnInstallDriver, L"Install Virtual Display Driver");
+            }
+            ShowWindow(g_hBtnInstallDriver, isHome ? SW_SHOW : SW_HIDE);
+        }
     }
 
     // Streaming
@@ -888,8 +908,22 @@ void UpdateTabVisibility() {
 
     // Driver
     if (g_hBtnDriverTabInstall && g_hBtnDriverTabUninstall) {
-        ShowWindow(g_hBtnDriverTabInstall, (isDriver && !isDriverReady) ? SW_SHOW : SW_HIDE);
-        ShowWindow(g_hBtnDriverTabUninstall, (isDriver && isDriverReady) ? SW_SHOW : SW_HIDE);
+        if (isDriverReady) {
+            ShowWindow(g_hBtnDriverTabInstall, SW_HIDE);
+            ShowWindow(g_hBtnDriverTabUninstall, isDriver ? SW_SHOW : SW_HIDE);
+        } else {
+            ShowWindow(g_hBtnDriverTabUninstall, SW_HIDE);
+            if (g_driverInfo.state == DriverState::InstalledButNotOperational) {
+                SetWindowTextW(g_hBtnDriverTabInstall, L"Repair Driver");
+            } else if (g_driverInfo.state == DriverState::UpdateAvailable) {
+                SetWindowTextW(g_hBtnDriverTabInstall, L"Update Driver Package");
+            } else if (g_driverInfo.state == DriverState::DetectionFailed) {
+                SetWindowTextW(g_hBtnDriverTabInstall, L"Retry Detection");
+            } else {
+                SetWindowTextW(g_hBtnDriverTabInstall, L"Install Virtual Display Driver");
+            }
+            ShowWindow(g_hBtnDriverTabInstall, isDriver ? SW_SHOW : SW_HIDE);
+        }
     }
     ShowWindow(g_hBtnDriverTabRepair, isDriver ? SW_SHOW : SW_HIDE);
     ShowWindow(g_hBtnDriverTabUpdate, isDriver ? SW_SHOW : SW_HIDE);
@@ -1013,16 +1047,7 @@ void RefreshDriverStatus() {
 
     if (stateChanged) {
         lastReportedState = newInfo.state;
-        bool isInstalled = (g_driverInfo.state == DriverState::Ready ||
-                            g_driverInfo.state == DriverState::InstalledButMonitorNotAvailable);
-        if (g_hBtnInstallDriver && g_hBtnUninstallDriver) {
-            ShowWindow(g_hBtnInstallDriver, (g_currentTab == TAB_HOME && !isInstalled) ? SW_SHOW : SW_HIDE);
-            ShowWindow(g_hBtnUninstallDriver, (g_currentTab == TAB_HOME && isInstalled) ? SW_SHOW : SW_HIDE);
-        }
-        if (g_hBtnDriverTabInstall && g_hBtnDriverTabUninstall) {
-            ShowWindow(g_hBtnDriverTabInstall, (g_currentTab == TAB_DRIVER && !isInstalled) ? SW_SHOW : SW_HIDE);
-            ShowWindow(g_hBtnDriverTabUninstall, (g_currentTab == TAB_DRIVER && isInstalled) ? SW_SHOW : SW_HIDE);
-        }
+        UpdateTabVisibility();
         if (g_hWnd) {
             InvalidateRect(g_hWnd, nullptr, FALSE);
         }
@@ -1202,14 +1227,20 @@ void DrawHeroHeader(Gdiplus::Graphics& g, const Gdiplus::RectF& rc, const wchar_
     else if (iconType == 5) DrawVectorBook(g, icX, icY, icS, iconCol);
     else if (iconType == 6) DrawVectorInfo(g, icX, icY, icS, iconCol);
 
+    Gdiplus::StringFormat trimFmt;
+    trimFmt.SetTrimming(Gdiplus::StringTrimmingEllipsisCharacter);
+    trimFmt.SetFormatFlags(Gdiplus::StringFormatFlagsNoClip);
+
     float textX = badgeX + badgeSize + 16.0f;
+    float maxTitleW = (rc.Width > (textX - rc.X + 16.0f)) ? (rc.Width - (textX - rc.X) - 16.0f) : 100.0f;
+
     Gdiplus::Font titleFont(L"Segoe UI", 13.5f, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
     Gdiplus::SolidBrush titleBrush(Gdiplus::Color(255, 255, 255, 255));
-    g.DrawString(title, -1, &titleFont, Gdiplus::PointF(textX, rc.Y + 18.0f), &titleBrush);
+    g.DrawString(title, -1, &titleFont, Gdiplus::RectF(textX, rc.Y + 16.0f, maxTitleW, 26.0f), &trimFmt, &titleBrush);
 
     Gdiplus::Font subFont(L"Segoe UI", 9.2f, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
     Gdiplus::SolidBrush subBrush(Gdiplus::Color(255, 126, 145, 173));
-    g.DrawString(subtitle, -1, &subFont, Gdiplus::PointF(textX, rc.Y + 46.0f), &subBrush);
+    g.DrawString(subtitle, -1, &subFont, Gdiplus::RectF(textX, rc.Y + 44.0f, maxTitleW, 40.0f), &trimFmt, &subBrush);
 }
 
 void DrawStreamingTab(Gdiplus::Graphics& g, int clientW, int clientH) {
@@ -1234,6 +1265,10 @@ void DrawStreamingTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     float innerX = leftRc.X + 20.0f;
     float innerW = leftRc.Width - 40.0f;
 
+    Gdiplus::StringFormat fmt;
+    fmt.SetTrimming(Gdiplus::StringTrimmingEllipsisCharacter);
+    fmt.SetFormatFlags(Gdiplus::StringFormatFlagsNoClip);
+
     // Status Banner inside telemetry
     Gdiplus::GraphicsPath statusPath;
     AddRoundedRectangle(statusPath, innerX, curY, innerW, 36.0f, 6.0f);
@@ -1244,12 +1279,42 @@ void DrawStreamingTab(Gdiplus::Graphics& g, int clientW, int clientH) {
 
     Gdiplus::Font statFont(L"Segoe UI", 9.5f, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
     Gdiplus::SolidBrush statBrush(isRunning ? Gdiplus::Color(255, 52, 211, 153) : Gdiplus::Color(255, 148, 163, 184));
-    g.DrawString(isRunning ? L"●  Host Active — Streaming H.264 Video" : L"○  Host Inactive — Click Start Host Service to Begin", -1, &statFont, Gdiplus::PointF(innerX + 14.0f, curY + 9.0f), &statBrush);
+    g.DrawString(isRunning ? L"●  Host Active — Streaming H.264 Video" : L"○  Host Inactive — Click Start Host Service to Begin",
+                 -1, &statFont, Gdiplus::RectF(innerX + 14.0f, curY + 9.0f, innerW - 20.0f, 20.0f), &fmt, &statBrush);
     curY += 50.0f;
 
+    std::wstring clientStatusStr;
+    if (!isRunning) {
+        clientStatusStr = L"Host Inactive";
+    } else {
+        secondscreen::engine::ClientStatus cs = g_procMgr->GetClientStatus();
+        std::string ip = g_procMgr->GetClientIp();
+        std::wstring wIp(ip.begin(), ip.end());
+        switch (cs) {
+        case secondscreen::engine::ClientStatus::WaitingForClient:
+            clientStatusStr = L"Waiting for Android client stream connection...";
+            break;
+        case secondscreen::engine::ClientStatus::ClientConnecting:
+            clientStatusStr = L"Client connecting" + (wIp.empty() ? L"..." : (L" from " + wIp));
+            break;
+        case secondscreen::engine::ClientStatus::ClientInitializing:
+            clientStatusStr = L"Initializing session" + (wIp.empty() ? L"..." : (L" with " + wIp));
+            break;
+        case secondscreen::engine::ClientStatus::SendingInitialKeyframe:
+            clientStatusStr = L"Transmitting initial IDR keyframe to " + (wIp.empty() ? L"client" : wIp);
+            break;
+        case secondscreen::engine::ClientStatus::ClientStreaming:
+            clientStatusStr = L"Active stream to " + (wIp.empty() ? L"Android client" : wIp) + L" (H.264 smooth)";
+            break;
+        case secondscreen::engine::ClientStatus::ClientDisconnected:
+            clientStatusStr = L"Client disconnected (Standby)";
+            break;
+        }
+    }
+
     // Metric items grid
-    struct MetricRow { const wchar_t* label; const wchar_t* value; };
-    const MetricRow metrics[] = {
+    struct MetricItem { const wchar_t* label; std::wstring value; };
+    const MetricItem metrics[] = {
         { L"Capture Target:", L"1920 × 1080 @ 60Hz (Extended / Mirror)" },
         { L"Video Encoder:", L"Hardware H.264 (Windows Media Foundation / D3D11 NV12)" },
         { L"Frame Delivery:", isRunning ? L"60.0 FPS Smooth (16.6 ms/frame)" : L"Standby (0.0 FPS)" },
@@ -1257,7 +1322,7 @@ void DrawStreamingTab(Gdiplus::Graphics& g, int clientW, int clientH) {
         { L"Transport Layer:", L"TCP Non-Blocking Streaming Socket (Port 52025)" },
         { L"Packet Loss / Drops:", L"0 frames (0.0% loss)" },
         { L"Touch Injection:", L"Absolute Multi-Touch Enabled" },
-        { L"Active Client:", isRunning ? L"Waiting for Android client stream connection..." : L"None" }
+        { L"Active Client:", clientStatusStr }
     };
 
     Gdiplus::Font labelFont(L"Segoe UI", 9.0f, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
@@ -1265,9 +1330,13 @@ void DrawStreamingTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     Gdiplus::SolidBrush lblBrush(Gdiplus::Color(255, 126, 145, 173));
     Gdiplus::SolidBrush valBrush(Gdiplus::Color(255, 240, 245, 255));
 
+    float lblW = 135.0f;
+    float valX = innerX + lblW + 6.0f;
+    float valW = (innerW > (lblW + 10.0f)) ? (innerW - lblW - 10.0f) : 100.0f;
+
     for (const auto& m : metrics) {
-        g.DrawString(m.label, -1, &labelFont, Gdiplus::PointF(innerX, curY), &lblBrush);
-        g.DrawString(m.value, -1, &valFont, Gdiplus::PointF(innerX + 140.0f, curY), &valBrush);
+        g.DrawString(m.label, -1, &labelFont, Gdiplus::RectF(innerX, curY, lblW, 20.0f), &fmt, &lblBrush);
+        g.DrawString(m.value.c_str(), -1, &valFont, Gdiplus::RectF(valX, curY, valW, 20.0f), &fmt, &valBrush);
         curY += 24.0f;
     }
 
@@ -1289,11 +1358,11 @@ void DrawStreamingTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     Gdiplus::Font noteBodyFont(L"Segoe UI", 8.8f, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
     Gdiplus::SolidBrush cyanTxt(Gdiplus::Color(255, 56, 189, 248));
     Gdiplus::SolidBrush whiteTxt(Gdiplus::Color(255, 226, 232, 240));
-    g.DrawString(L"H.264 Hardware Acceleration Active", -1, &noteTitleFont, Gdiplus::PointF(rInnerX + 12.0f, noteY + 10.0f), &cyanTxt);
+    g.DrawString(L"H.264 Hardware Acceleration Active", -1, &noteTitleFont, Gdiplus::RectF(rInnerX + 12.0f, noteY + 10.0f, rInnerW - 24.0f, 20.0f), &fmt, &cyanTxt);
     g.DrawString(L"DuetView PC captures your screen using DirectX DXGI Duplication and encodes\n"
                  L"frames into H.264 Annex-B NAL units with periodic SPS/PPS configuration\n"
                  L"headers for instantaneous client recovery and ultra-low latency.", -1, &noteBodyFont,
-                 Gdiplus::PointF(rInnerX + 12.0f, noteY + 30.0f), &whiteTxt);
+                 Gdiplus::RectF(rInnerX + 12.0f, noteY + 30.0f, rInnerW - 24.0f, 55.0f), &fmt, &whiteTxt);
 }
 
 void DrawDevicesTab(Gdiplus::Graphics& g, int clientW, int clientH) {
@@ -1317,6 +1386,18 @@ void DrawDevicesTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     float innerW = leftRc.Width - 36.0f;
     float curY = leftRc.Y + 70.0f;
 
+    Gdiplus::StringFormat fmt;
+    fmt.SetTrimming(Gdiplus::StringTrimmingEllipsisCharacter);
+    fmt.SetFormatFlags(Gdiplus::StringFormatFlagsNoClip);
+
+    std::string liveClientIp;
+    bool clientActive = false;
+    if (g_procMgr && g_procMgr->IsRunning()) {
+        liveClientIp = g_procMgr->GetClientIp();
+        clientActive = !liveClientIp.empty() && (g_procMgr->GetClientStatus() == secondscreen::engine::ClientStatus::ClientStreaming);
+    }
+    std::wstring wLiveIp(liveClientIp.begin(), liveClientIp.end());
+
     // Subcard 1: DuetView Android Phone
     Gdiplus::GraphicsPath d1Path;
     AddRoundedRectangle(d1Path, innerX, curY, innerW, 110.0f, 8.0f);
@@ -1338,10 +1419,20 @@ void DrawDevicesTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     Gdiplus::SolidBrush greenTxt(Gdiplus::Color(255, 52, 211, 153));
     Gdiplus::SolidBrush cyanTxt(Gdiplus::Color(255, 56, 189, 248));
 
-    g.DrawString(L"DuetView Android Client", -1, &dTitleFont, Gdiplus::PointF(innerX + 58.0f, curY + 12.0f), &whiteTxt);
-    g.DrawString(L"Primary Connected Mobile Device", -1, &dSubFont, Gdiplus::PointF(innerX + 58.0f, curY + 32.0f), &mutedTxt);
-    g.DrawString(L"●  Connected & Ready  •  Wi-Fi (5 GHz) Peer-to-Peer  •  10-Point Touch Enabled", -1, &dSubFont, Gdiplus::PointF(innerX + 14.0f, curY + 68.0f), &greenTxt);
-    g.DrawString(L"Address: 192.168.29.x:52025  |  Latency: ~4ms  |  Resolution: 1080p Native", -1, &dSubFont, Gdiplus::PointF(innerX + 14.0f, curY + 86.0f), &mutedTxt);
+    float textMaxW = (innerW > 70.0f) ? (innerW - 70.0f) : 100.0f;
+    g.DrawString(L"DuetView Android Client", -1, &dTitleFont, Gdiplus::RectF(innerX + 58.0f, curY + 12.0f, textMaxW, 20.0f), &fmt, &whiteTxt);
+    g.DrawString(clientActive ? (L"Live Stream Active • " + wLiveIp).c_str() : L"Primary Mobile Companion Device",
+                 -1, &dSubFont, Gdiplus::RectF(innerX + 58.0f, curY + 32.0f, textMaxW, 18.0f), &fmt, &mutedTxt);
+    
+    std::wstring statusLine1 = clientActive
+        ? (L"●  Connected & Streaming  •  Client: " + wLiveIp + L"  •  10-Point Touch Enabled")
+        : L"○  Standby  •  Awaiting mobile connection  •  Touch & Pen Ready";
+    g.DrawString(statusLine1.c_str(), -1, &dSubFont, Gdiplus::RectF(innerX + 14.0f, curY + 68.0f, innerW - 28.0f, 18.0f), &fmt, clientActive ? &greenTxt : &mutedTxt);
+
+    std::wstring statusLine2 = clientActive
+        ? (L"Address: " + wLiveIp + L":52025  |  Hardware H.264 Accelerated  |  1080p Native")
+        : L"Listening on Port 52025  |  UDP Discovery Beacon Active  |  Zero-Config Pairing";
+    g.DrawString(statusLine2.c_str(), -1, &dSubFont, Gdiplus::RectF(innerX + 14.0f, curY + 86.0f, innerW - 28.0f, 18.0f), &fmt, &mutedTxt);
 
     curY += 124.0f;
 
@@ -1358,40 +1449,67 @@ void DrawDevicesTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     DrawVectorUsb(g, innerX + 22.0f, curY + 22.0f, 16.0f, Gdiplus::Color(255, 168, 85, 247));
 
     Gdiplus::SolidBrush purpleTxt(Gdiplus::Color(255, 192, 132, 252));
-    g.DrawString(L"Wired USB Tethered Connection", -1, &dTitleFont, Gdiplus::PointF(innerX + 58.0f, curY + 12.0f), &whiteTxt);
-    g.DrawString(L"Direct High-Speed USB Cable Link", -1, &dSubFont, Gdiplus::PointF(innerX + 58.0f, curY + 32.0f), &mutedTxt);
-    g.DrawString(L"⚡  Zero-Latency Hardware Link  •  Subnet 192.168.42.x  •  Lossless 12 Mbps", -1, &dSubFont, Gdiplus::PointF(innerX + 14.0f, curY + 68.0f), &purpleTxt);
-    g.DrawString(L"Connect via USB cable and enable USB Tethering in Android settings for instant zero-lag mode.", -1, &dSubFont, Gdiplus::PointF(innerX + 14.0f, curY + 86.0f), &mutedTxt);
+    g.DrawString(L"Wired USB Tethered Connection", -1, &dTitleFont, Gdiplus::RectF(innerX + 58.0f, curY + 12.0f, textMaxW, 20.0f), &fmt, &whiteTxt);
+    g.DrawString(L"Direct High-Speed USB Cable Link", -1, &dSubFont, Gdiplus::RectF(innerX + 58.0f, curY + 32.0f, textMaxW, 18.0f), &fmt, &mutedTxt);
+
+    std::string usbIp = g_pairingMgr ? g_pairingMgr->GetUsbTetheredEndpoint() : "";
+    std::wstring usbStatusLine;
+    if (!usbIp.empty()) {
+        std::wstring wUsb(usbIp.begin(), usbIp.end());
+        usbStatusLine = L"⚡  USB Cable Active  •  Host IP: " + wUsb + L":52025  •  Lossless 12 Mbps";
+    } else {
+        usbStatusLine = L"⚡  Zero-Latency Hardware Link  •  Plug in USB cable & enable USB Tethering";
+    }
+    g.DrawString(usbStatusLine.c_str(), -1, &dSubFont, Gdiplus::RectF(innerX + 14.0f, curY + 68.0f, innerW - 28.0f, 18.0f), &fmt, &purpleTxt);
+    g.DrawString(L"Connect via USB cable and enable USB Tethering in Android settings for instant zero-lag mode.", -1, &dSubFont, Gdiplus::RectF(innerX + 14.0f, curY + 86.0f, innerW - 28.0f, 18.0f), &fmt, &mutedTxt);
 
     // Right Card: Network Endpoints
     Gdiplus::RectF rightRc((float)rightX, (float)cardTop, (float)rightW, (float)(cardBottom - cardTop));
     DrawCardContainer(g, rightRc, L"Network Endpoints & Beacon", L"Host interfaces and broadcast discovery status", 1);
 
     float rInnerX = rightRc.X + 20.0f;
+    float rInnerW = rightRc.Width - 40.0f;
     float rY = rightRc.Y + 70.0f;
 
     Gdiplus::Font netFont(L"Segoe UI", 9.2f, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
     Gdiplus::Font netBold(L"Segoe UI", 9.2f, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
 
-    g.DrawString(L"Host Reachable IP Addresses:", -1, &netBold, Gdiplus::PointF(rInnerX, rY), &whiteTxt);
+    g.DrawString(L"Host Reachable IP Addresses:", -1, &netBold, Gdiplus::RectF(rInnerX, rY, rInnerW, 20.0f), &fmt, &whiteTxt);
     rY += 24.0f;
     if (g_pairingMgr) {
-        auto ips = g_pairingMgr->GetLocalIPv4Endpoints();
-        for (const auto& ip : ips) {
-            std::wstring wIp(ip.begin(), ip.end());
-            g.DrawString((L"•  " + wIp + L"  (Active Network Interface)").c_str(), -1, &netFont, Gdiplus::PointF(rInnerX + 8.0f, rY), &cyanTxt);
+        auto detailed = g_pairingMgr->GetAllEndpointsDetailed();
+        if (detailed.empty()) {
+            g.DrawString(L"•  127.0.0.1  (Local Loopback Only)", -1, &netFont, Gdiplus::RectF(rInnerX + 8.0f, rY, rInnerW - 16.0f, 20.0f), &fmt, &cyanTxt);
             rY += 22.0f;
+        } else {
+            for (const auto& ep : detailed) {
+                std::wstring wIp(ep.ipAddress.begin(), ep.ipAddress.end());
+                std::wstring tag = L"Active Network Interface";
+                if (ep.isUsbTethered) {
+                    tag = L"⚡ USB Tethered Link";
+                } else if (ep.kind == secondscreen::pairing::InterfaceKind::Wifi) {
+                    tag = L"Wi-Fi Wireless";
+                } else if (ep.kind == secondscreen::pairing::InterfaceKind::EthernetLan) {
+                    tag = L"Ethernet LAN";
+                }
+                g.DrawString((L"•  " + wIp + L"  (" + tag + L")").c_str(), -1, &netFont, Gdiplus::RectF(rInnerX + 8.0f, rY, rInnerW - 16.0f, 20.0f), &fmt, &cyanTxt);
+                rY += 22.0f;
+            }
         }
     }
     rY += 8.0f;
-    g.DrawString(L"Streaming Port (TCP):", -1, &netBold, Gdiplus::PointF(rInnerX, rY), &whiteTxt);
-    g.DrawString(L"52025 (Open & Listening)", -1, &netFont, Gdiplus::PointF(rInnerX + 160.0f, rY), &cyanTxt);
+    float netLblW = 150.0f;
+    float netValX = rInnerX + netLblW + 5.0f;
+    float netValW = (rInnerW > (netLblW + 10.0f)) ? (rInnerW - netLblW - 10.0f) : 100.0f;
+
+    g.DrawString(L"Streaming Port (TCP):", -1, &netBold, Gdiplus::RectF(rInnerX, rY, netLblW, 20.0f), &fmt, &whiteTxt);
+    g.DrawString(L"52025 (Open & Listening)", -1, &netFont, Gdiplus::RectF(netValX, rY, netValW, 20.0f), &fmt, &cyanTxt);
     rY += 24.0f;
-    g.DrawString(L"Pairing Port (TCP):", -1, &netBold, Gdiplus::PointF(rInnerX, rY), &whiteTxt);
-    g.DrawString(L"52027 (Dedicated Auth Listener)", -1, &netFont, Gdiplus::PointF(rInnerX + 160.0f, rY), &cyanTxt);
+    g.DrawString(L"Pairing Port (TCP):", -1, &netBold, Gdiplus::RectF(rInnerX, rY, netLblW, 20.0f), &fmt, &whiteTxt);
+    g.DrawString(L"52027 (Dedicated Auth Listener)", -1, &netFont, Gdiplus::RectF(netValX, rY, netValW, 20.0f), &fmt, &cyanTxt);
     rY += 24.0f;
-    g.DrawString(L"Discovery Beacon:", -1, &netBold, Gdiplus::PointF(rInnerX, rY), &whiteTxt);
-    g.DrawString(L"UDP Broadcast (every 2.0s on 52025)", -1, &netFont, Gdiplus::PointF(rInnerX + 160.0f, rY), &cyanTxt);
+    g.DrawString(L"Discovery Beacon:", -1, &netBold, Gdiplus::RectF(rInnerX, rY, netLblW, 20.0f), &fmt, &whiteTxt);
+    g.DrawString(L"UDP Broadcast (every 2.0s on 52025)", -1, &netFont, Gdiplus::RectF(netValX, rY, netValW, 20.0f), &fmt, &cyanTxt);
 }
 
 void DrawDriverTab(Gdiplus::Graphics& g, int clientW, int clientH) {
@@ -1415,35 +1533,96 @@ void DrawDriverTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     float innerW = leftRc.Width - 40.0f;
     float curY = leftRc.Y + 70.0f;
 
-    bool isInstalled = (g_driverInfo.state == DriverState::Ready ||
-                        g_driverInfo.state == DriverState::InstalledButMonitorNotAvailable);
+    Gdiplus::StringFormat fmt;
+    fmt.SetTrimming(Gdiplus::StringTrimmingEllipsisCharacter);
+    fmt.SetFormatFlags(Gdiplus::StringFormatFlagsNoClip);
+
+    // 5 Authoritative States
+    Gdiplus::Color bannerBgCol;
+    Gdiplus::Color bannerBorderCol;
+    Gdiplus::Color bannerTxtCol;
+    std::wstring bannerStatusText;
+    std::wstring bannerSubText;
+
+    switch (g_driverInfo.state) {
+    case DriverState::Ready:
+    case DriverState::InstalledButMonitorNotAvailable:
+        bannerBgCol = Gdiplus::Color(255, 6, 63, 48);
+        bannerBorderCol = Gdiplus::Color(255, 16, 185, 129);
+        bannerTxtCol = Gdiplus::Color(255, 52, 211, 153);
+        bannerStatusText = L"●  Virtual Display Driver Installed & Ready";
+        bannerSubText = L"✓ Latest driver already installed and operational" +
+            (g_driverInfo.installedVersion.empty() ? L"" : (L" (v" + std::wstring(g_driverInfo.installedVersion.begin(), g_driverInfo.installedVersion.end()) + L")"));
+        break;
+    case DriverState::InstalledButNotOperational:
+        bannerBgCol = Gdiplus::Color(255, 66, 32, 6);
+        bannerBorderCol = Gdiplus::Color(255, 245, 158, 11);
+        bannerTxtCol = Gdiplus::Color(255, 251, 191, 36);
+        bannerStatusText = L"▲  Driver Installed — Device Not Ready (Code " +
+            std::to_wstring(g_driverInfo.problemCode) + L")";
+        bannerSubText = L"Package installed in Driver Store, but device requires repair. Click Repair Driver.";
+        break;
+    case DriverState::UpdateAvailable:
+        bannerBgCol = Gdiplus::Color(255, 8, 47, 73);
+        bannerBorderCol = Gdiplus::Color(255, 14, 165, 233);
+        bannerTxtCol = Gdiplus::Color(255, 56, 189, 248);
+        bannerStatusText = L"↑  Driver Package Update Available";
+        bannerSubText = L"Installed: v" +
+            std::wstring(g_driverInfo.installedVersion.begin(), g_driverInfo.installedVersion.end()) +
+            L" → Bundled: v" +
+            std::wstring(g_driverInfo.bundledVersion.begin(), g_driverInfo.bundledVersion.end()) +
+            L". Click Update Driver Package.";
+        break;
+    case DriverState::DetectionFailed:
+        bannerBgCol = Gdiplus::Color(255, 69, 10, 10);
+        bannerBorderCol = Gdiplus::Color(255, 239, 68, 68);
+        bannerTxtCol = Gdiplus::Color(255, 248, 113, 113);
+        bannerStatusText = L"✕  Unable to Verify Driver Status";
+        bannerSubText = L"SetupAPI query failed or access denied. Click Repair Driver to retry.";
+        break;
+    case DriverState::NotInstalled:
+    default:
+        bannerBgCol = Gdiplus::Color(255, 30, 41, 59);
+        bannerBorderCol = Gdiplus::Color(255, 71, 85, 105);
+        bannerTxtCol = Gdiplus::Color(255, 148, 163, 184);
+        bannerStatusText = L"○  Driver Not Installed (Desktop Mirroring Mode Active)";
+        bannerSubText = L"Virtual display driver is not installed. Mirror mode is active, or install driver for Extended Desktop.";
+        break;
+    }
 
     // Status Banner inside driver card
     Gdiplus::GraphicsPath statusPath;
-    AddRoundedRectangle(statusPath, innerX, curY, innerW, 36.0f, 6.0f);
-    Gdiplus::SolidBrush statusBg(isInstalled ? Gdiplus::Color(255, 6, 63, 48) : Gdiplus::Color(255, 30, 41, 59));
+    AddRoundedRectangle(statusPath, innerX, curY, innerW, 46.0f, 6.0f);
+    Gdiplus::SolidBrush statusBg(bannerBgCol);
     g.FillPath(&statusBg, &statusPath);
-    Gdiplus::Pen statusPen(isInstalled ? Gdiplus::Color(255, 16, 185, 129) : Gdiplus::Color(255, 71, 85, 105), 1.0f);
+    Gdiplus::Pen statusPen(bannerBorderCol, 1.0f);
     g.DrawPath(&statusPen, &statusPath);
 
     Gdiplus::Font statFont(L"Segoe UI", 9.5f, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
-    Gdiplus::SolidBrush statBrush(isInstalled ? Gdiplus::Color(255, 52, 211, 153) : Gdiplus::Color(255, 148, 163, 184));
-    g.DrawString(isInstalled ? L"●  Virtual Display Driver Installed & Ready" : L"○  Driver Not Installed (Desktop Mirroring Mode Active)", -1, &statFont, Gdiplus::PointF(innerX + 14.0f, curY + 9.0f), &statBrush);
-    curY += 50.0f;
+    Gdiplus::Font statSubFont(L"Segoe UI", 8.2f, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
+    Gdiplus::SolidBrush statBrush(bannerTxtCol);
+    Gdiplus::SolidBrush statSubBrush(Gdiplus::Color(255, 203, 213, 225));
+    g.DrawString(bannerStatusText.c_str(), -1, &statFont, Gdiplus::RectF(innerX + 12.0f, curY + 6.0f, innerW - 24.0f, 18.0f), &fmt, &statBrush);
+    g.DrawString(bannerSubText.c_str(), -1, &statSubFont, Gdiplus::RectF(innerX + 12.0f, curY + 25.0f, innerW - 24.0f, 16.0f), &fmt, &statSubBrush);
+    curY += 60.0f;
 
     Gdiplus::Font labelFont(L"Segoe UI", 9.0f, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
     Gdiplus::Font valFont(L"Segoe UI", 9.0f, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
     Gdiplus::SolidBrush lblBrush(Gdiplus::Color(255, 126, 145, 173));
     Gdiplus::SolidBrush valBrush(Gdiplus::Color(255, 240, 245, 255));
 
-    g.DrawString(L"Architecture:", -1, &labelFont, Gdiplus::PointF(innerX, curY), &lblBrush);
-    g.DrawString(L"Microsoft Indirect Display Driver (IddCx / UMDF 2.x)", -1, &valFont, Gdiplus::PointF(innerX + 110.0f, curY), &valBrush);
+    float dLblW = 115.0f;
+    float dValX = innerX + dLblW + 5.0f;
+    float dValW = (innerW > (dLblW + 10.0f)) ? (innerW - dLblW - 10.0f) : 100.0f;
+
+    g.DrawString(L"Architecture:", -1, &labelFont, Gdiplus::RectF(innerX, curY, dLblW, 20.0f), &fmt, &lblBrush);
+    g.DrawString(L"Microsoft Indirect Display Driver (IddCx / UMDF 2.x)", -1, &valFont, Gdiplus::RectF(dValX, curY, dValW, 20.0f), &fmt, &valBrush);
     curY += 24.0f;
-    g.DrawString(L"Hardware ID:", -1, &labelFont, Gdiplus::PointF(innerX, curY), &lblBrush);
-    g.DrawString(L"Root\\SecondScreenIdd", -1, &valFont, Gdiplus::PointF(innerX + 110.0f, curY), &valBrush);
+    g.DrawString(L"Hardware ID:", -1, &labelFont, Gdiplus::RectF(innerX, curY, dLblW, 20.0f), &fmt, &lblBrush);
+    g.DrawString(L"Root\\SecondScreenIdd", -1, &valFont, Gdiplus::RectF(dValX, curY, dValW, 20.0f), &fmt, &valBrush);
     curY += 24.0f;
-    g.DrawString(L"Driver Package:", -1, &labelFont, Gdiplus::PointF(innerX, curY), &lblBrush);
-    g.DrawString(L"SecondScreenIdd.dll (x64) + SecondScreenIdd.inf", -1, &valFont, Gdiplus::PointF(innerX + 110.0f, curY), &valBrush);
+    g.DrawString(L"Driver Package:", -1, &labelFont, Gdiplus::RectF(innerX, curY, dLblW, 20.0f), &fmt, &lblBrush);
+    g.DrawString(L"SecondScreenIdd.dll (x64) + SecondScreenIdd.inf", -1, &valFont, Gdiplus::RectF(dValX, curY, dValW, 20.0f), &fmt, &valBrush);
 
     // Right Card: Diagnostics & Specifications
     Gdiplus::RectF rightRc((float)rightX, (float)cardTop, (float)rightW, (float)(cardBottom - cardTop));
@@ -1453,11 +1632,11 @@ void DrawDriverTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     float rInnerW = rightRc.Width - 40.0f;
     float rY = rightRc.Y + 70.0f;
 
-    g.DrawString(L"Supported Display Resolutions:", -1, &labelFont, Gdiplus::PointF(rInnerX, rY), &lblBrush);
+    g.DrawString(L"Supported Display Resolutions:", -1, &labelFont, Gdiplus::RectF(rInnerX, rY, rInnerW, 20.0f), &fmt, &lblBrush);
     rY += 22.0f;
     g.DrawString(L"•  1920 × 1080 @ 60Hz (Recommended Full HD)\n"
                  L"•  1280 × 720 @ 60Hz (High-Performance HD)\n"
-                 L"•  2560 × 1440 @ 60Hz (2K Quad HD)", -1, &valFont, Gdiplus::PointF(rInnerX + 8.0f, rY), &valBrush);
+                 L"•  2560 × 1440 @ 60Hz (2K Quad HD)", -1, &valFont, Gdiplus::RectF(rInnerX + 8.0f, rY, rInnerW - 16.0f, 60.0f), &fmt, &valBrush);
     rY += 66.0f;
 
     // Clean Uninstallation Guarantee box
@@ -1470,12 +1649,12 @@ void DrawDriverTab(Gdiplus::Graphics& g, int clientW, int clientH) {
 
     Gdiplus::Font smallBold(L"Segoe UI", 9.0f, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
     Gdiplus::Font smallReg(L"Segoe UI", 8.6f, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
-    Gdiplus::SolidBrush cyanTxt(Gdiplus::Color(255, 56, 189, 248));
-    Gdiplus::SolidBrush whiteTxt(Gdiplus::Color(255, 226, 232, 240));
+    Gdiplus::SolidBrush infoCyanTxt(Gdiplus::Color(255, 56, 189, 248));
+    Gdiplus::SolidBrush infoWhiteTxt(Gdiplus::Color(255, 226, 232, 240));
 
-    g.DrawString(L"Clean Uninstallation Guarantee", -1, &smallBold, Gdiplus::PointF(rInnerX + 10.0f, rY + 8.0f), &cyanTxt);
+    g.DrawString(L"Clean Uninstallation Guarantee", -1, &smallBold, Gdiplus::RectF(rInnerX + 10.0f, rY + 8.0f, rInnerW - 20.0f, 18.0f), &fmt, &infoCyanTxt);
     g.DrawString(L"Clicking 'Uninstall Driver' thoroughly purges the device node and deletes\n"
-                 L"all matching driver packages from the Windows Driver Store.", -1, &smallReg, Gdiplus::PointF(rInnerX + 10.0f, rY + 26.0f), &whiteTxt);
+                 L"all matching driver packages from the Windows Driver Store.", -1, &smallReg, Gdiplus::RectF(rInnerX + 10.0f, rY + 26.0f, rInnerW - 20.0f, 30.0f), &fmt, &infoWhiteTxt);
 }
 
 void DrawSettingsTab(Gdiplus::Graphics& g, int clientW, int clientH) {
@@ -1500,9 +1679,13 @@ void DrawSettingsTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     Gdiplus::Font lblFont(L"Segoe UI", 9.0f, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
     Gdiplus::SolidBrush lblBrush(Gdiplus::Color(255, 126, 145, 173));
 
-    g.DrawString(L"Preferred Frame Rate", -1, &lblFont, Gdiplus::PointF(innerX, leftRc.Y + 70.0f), &lblBrush);
-    g.DrawString(L"Streaming Bitrate Profile", -1, &lblFont, Gdiplus::PointF(innerX, leftRc.Y + 128.0f), &lblBrush);
-    g.DrawString(L"Target Monitor Source", -1, &lblFont, Gdiplus::PointF(innerX, leftRc.Y + 186.0f), &lblBrush);
+    Gdiplus::StringFormat fmt;
+    fmt.SetTrimming(Gdiplus::StringTrimmingEllipsisCharacter);
+    fmt.SetFormatFlags(Gdiplus::StringFormatFlagsNoClip);
+
+    g.DrawString(L"Preferred Frame Rate", -1, &lblFont, Gdiplus::RectF(innerX, leftRc.Y + 70.0f, innerW, 20.0f), &fmt, &lblBrush);
+    g.DrawString(L"Streaming Bitrate Profile", -1, &lblFont, Gdiplus::RectF(innerX, leftRc.Y + 128.0f, innerW, 20.0f), &fmt, &lblBrush);
+    g.DrawString(L"Target Monitor Source", -1, &lblFont, Gdiplus::RectF(innerX, leftRc.Y + 186.0f, innerW, 20.0f), &fmt, &lblBrush);
 
     // Technical note matching phone app
     float noteY = leftRc.Y + 248.0f;
@@ -1517,14 +1700,15 @@ void DrawSettingsTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     Gdiplus::SolidBrush noteBrush(Gdiplus::Color(255, 148, 163, 184));
     g.DrawString(L"Note: Resolution and frame rate options negotiate target parameters\n"
                  L"with the client. Actual rendered FPS depends on physical display\n"
-                 L"hardware, GPU encoding capability, and local Wi-Fi bandwidth.", -1, &noteFont, Gdiplus::PointF(innerX + 10.0f, noteY + 10.0f), &noteBrush);
+                 L"hardware, GPU encoding capability, and local Wi-Fi bandwidth.", -1, &noteFont, Gdiplus::RectF(innerX + 10.0f, noteY + 10.0f, innerW - 20.0f, 56.0f), &fmt, &noteBrush);
 
     Gdiplus::RectF rightRc((float)rightX, (float)cardTop, (float)rightW, (float)(cardBottom - cardTop));
     DrawCardContainer(g, rightRc, L"Host & Connection Preferences", L"Network ports, PC hostname, and startup behavior", 2);
 
     float rInnerX = rightRc.X + 20.0f;
-    g.DrawString(L"PC Display Name", -1, &lblFont, Gdiplus::PointF(rInnerX, rightRc.Y + 70.0f), &lblBrush);
-    g.DrawString(L"Streaming Port (Default: 52025)", -1, &lblFont, Gdiplus::PointF(rInnerX, rightRc.Y + 128.0f), &lblBrush);
+    float rInnerW = rightRc.Width - 40.0f;
+    g.DrawString(L"PC Display Name", -1, &lblFont, Gdiplus::RectF(rInnerX, rightRc.Y + 70.0f, rInnerW, 20.0f), &fmt, &lblBrush);
+    g.DrawString(L"Streaming Port (Default: 52025)", -1, &lblFont, Gdiplus::RectF(rInnerX, rightRc.Y + 128.0f, rInnerW, 20.0f), &fmt, &lblBrush);
 }
 
 void DrawGuideTab(Gdiplus::Graphics& g, int clientW, int clientH) {
@@ -1543,10 +1727,15 @@ void DrawGuideTab(Gdiplus::Graphics& g, int clientW, int clientH) {
 
     int cardH = (cardBottom - cardTop - 14) / 2;
 
+    Gdiplus::StringFormat fmt;
+    fmt.SetTrimming(Gdiplus::StringTrimmingEllipsisCharacter);
+    fmt.SetFormatFlags(Gdiplus::StringFormatFlagsNoClip);
+
     // Card 1: Connection Methods (Top-Left)
     Gdiplus::RectF c1Rc((float)contentX, (float)cardTop, (float)colW, (float)cardH);
     DrawCardContainer(g, c1Rc, L"1. Connection Methods", L"Wi-Fi vs. Wired USB connection", 1);
     float c1X = c1Rc.X + 16.0f;
+    float c1W = c1Rc.Width - 32.0f;
     float c1Y = c1Rc.Y + 68.0f;
     Gdiplus::Font boldF(L"Segoe UI", 9.2f, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
     Gdiplus::Font regF(L"Segoe UI", 8.8f, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
@@ -1554,42 +1743,45 @@ void DrawGuideTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     Gdiplus::SolidBrush whiteTxt(Gdiplus::Color(255, 240, 245, 255));
     Gdiplus::SolidBrush mutedTxt(Gdiplus::Color(255, 126, 145, 173));
 
-    g.DrawString(L"Wi-Fi (Wireless Mode):", -1, &boldF, Gdiplus::PointF(c1X, c1Y), &cyanTxt);
-    g.DrawString(L"Connect PC and Android to the same 5 GHz Wi-Fi network.\nTap 'Scan to Connect' or choose this PC from 'Discover PCs'.", -1, &regF, Gdiplus::PointF(c1X, c1Y + 18.0f), &whiteTxt);
+    g.DrawString(L"Wi-Fi (Wireless Mode):", -1, &boldF, Gdiplus::RectF(c1X, c1Y, c1W, 18.0f), &fmt, &cyanTxt);
+    g.DrawString(L"Connect PC and Android to the same 5 GHz Wi-Fi network.\nTap 'Scan to Connect' or choose this PC from 'Discover PCs'.", -1, &regF, Gdiplus::RectF(c1X, c1Y + 18.0f, c1W, 36.0f), &fmt, &whiteTxt);
     c1Y += 56.0f;
-    g.DrawString(L"Wired USB Connection:", -1, &boldF, Gdiplus::PointF(c1X, c1Y), &cyanTxt);
-    g.DrawString(L"Connect via USB cable and enable USB Tethering in Android settings.\nSwitch to USB mode in the Android app for instant zero-lag mode.", -1, &regF, Gdiplus::PointF(c1X, c1Y + 18.0f), &whiteTxt);
+    g.DrawString(L"Wired USB Connection:", -1, &boldF, Gdiplus::RectF(c1X, c1Y, c1W, 18.0f), &fmt, &cyanTxt);
+    g.DrawString(L"Connect via USB cable and enable USB Tethering in Android settings.\nSwitch to USB mode in the Android app for instant zero-lag mode.", -1, &regF, Gdiplus::RectF(c1X, c1Y + 18.0f, c1W, 36.0f), &fmt, &whiteTxt);
 
     // Card 2: Display Modes (Top-Right)
     Gdiplus::RectF c2Rc((float)rightColX, (float)cardTop, (float)rightColW, (float)cardH);
     DrawCardContainer(g, c2Rc, L"2. Display Modes", L"Extended desktop vs. desktop mirroring", 3);
     float c2X = c2Rc.X + 16.0f;
+    float c2W = c2Rc.Width - 32.0f;
     float c2Y = c2Rc.Y + 68.0f;
-    g.DrawString(L"True Extended Desktop:", -1, &boldF, Gdiplus::PointF(c2X, c2Y), &cyanTxt);
-    g.DrawString(L"Turns your Android into an independent secondary monitor with\nindependent windows. Requires the driver. Press Win + P -> Extend.", -1, &regF, Gdiplus::PointF(c2X, c2Y + 18.0f), &whiteTxt);
+    g.DrawString(L"True Extended Desktop:", -1, &boldF, Gdiplus::RectF(c2X, c2Y, c2W, 18.0f), &fmt, &cyanTxt);
+    g.DrawString(L"Turns your Android into an independent secondary monitor with\nindependent windows. Requires the driver. Press Win + P -> Extend.", -1, &regF, Gdiplus::RectF(c2X, c2Y + 18.0f, c2W, 36.0f), &fmt, &whiteTxt);
     c2Y += 56.0f;
-    g.DrawString(L"Desktop Mirroring:", -1, &boldF, Gdiplus::PointF(c2X, c2Y), &cyanTxt);
-    g.DrawString(L"Works immediately with zero drivers required. Clones your main\ndisplay for viewing, media playback, or quick presentations.", -1, &regF, Gdiplus::PointF(c2X, c2Y + 18.0f), &whiteTxt);
+    g.DrawString(L"Desktop Mirroring:", -1, &boldF, Gdiplus::RectF(c2X, c2Y, c2W, 18.0f), &fmt, &cyanTxt);
+    g.DrawString(L"Works immediately with zero drivers required. Clones your main\ndisplay for viewing, media playback, or quick presentations.", -1, &regF, Gdiplus::RectF(c2X, c2Y + 18.0f, c2W, 36.0f), &fmt, &whiteTxt);
 
     // Card 3: Controls & Gestures (Bottom-Left)
     float bRowY = (float)(cardTop + cardH + 14);
     Gdiplus::RectF c3Rc((float)contentX, bRowY, (float)colW, (float)cardH);
     DrawCardContainer(g, c3Rc, L"3. Controls & Gestures", L"Interact with Windows from touch", 2);
     float c3X = c3Rc.X + 16.0f;
+    float c3W = c3Rc.Width - 32.0f;
     float c3Y = c3Rc.Y + 68.0f;
     g.DrawString(L"•  Left Click: Single tap on the screen\n"
                  L"•  Right Click: Long press or two-finger tap\n"
                  L"•  Scroll: Two-finger swipe up or down\n"
-                 L"•  Virtual Keyboard: Tap keyboard icon for Windows hotkeys (Win, Alt, Ctrl, Esc)", -1, &regF, Gdiplus::PointF(c3X, c3Y), &whiteTxt);
+                 L"•  Virtual Keyboard: Tap keyboard icon for Windows hotkeys (Win, Alt, Ctrl, Esc)", -1, &regF, Gdiplus::RectF(c3X, c3Y, c3W, 64.0f), &fmt, &whiteTxt);
 
     // Card 4: Troubleshooting (Bottom-Right)
     Gdiplus::RectF c4Rc((float)rightColX, bRowY, (float)rightColW, (float)cardH);
     DrawCardContainer(g, c4Rc, L"4. Troubleshooting Guide", L"Solutions for common network and display issues", 4);
     float c4X = c4Rc.X + 16.0f;
+    float c4W = c4Rc.Width - 32.0f;
     float c4Y = c4Rc.Y + 68.0f;
     g.DrawString(L"•  Firewall: Ensure Windows Defender allows port 52025\n"
                  L"•  Latency: Use 5 GHz Wi-Fi or USB tethering instead of 2.4 GHz\n"
-                 L"•  Driver Fix: If extending fails, go to Driver tab and click 'Repair Driver'", -1, &regF, Gdiplus::PointF(c4X, c4Y), &whiteTxt);
+                 L"•  Driver Fix: If extending fails, go to Driver tab and click 'Repair Driver'", -1, &regF, Gdiplus::RectF(c4X, c4Y, c4W, 64.0f), &fmt, &whiteTxt);
 }
 
 void DrawAboutTab(Gdiplus::Graphics& g, int clientW, int clientH) {
@@ -1619,14 +1811,22 @@ void DrawAboutTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     Gdiplus::SolidBrush whiteTxt(Gdiplus::Color(255, 240, 245, 255));
     Gdiplus::SolidBrush mutedTxt(Gdiplus::Color(255, 126, 145, 173));
 
-    g.DrawString(L"Application Version:", -1, &boldF, Gdiplus::PointF(innerX, curY), &whiteTxt);
-    g.DrawString(L"0.4.0 (Unified Release Build)", -1, &regF, Gdiplus::PointF(innerX + 150.0f, curY), &cyanTxt);
+    Gdiplus::StringFormat fmt;
+    fmt.SetTrimming(Gdiplus::StringTrimmingEllipsisCharacter);
+    fmt.SetFormatFlags(Gdiplus::StringFormatFlagsNoClip);
+
+    float aLblW = 145.0f;
+    float aValX = innerX + aLblW + 5.0f;
+    float aValW = (innerW > (aLblW + 10.0f)) ? (innerW - aLblW - 10.0f) : 100.0f;
+
+    g.DrawString(L"Application Version:", -1, &boldF, Gdiplus::RectF(innerX, curY, aLblW, 20.0f), &fmt, &whiteTxt);
+    g.DrawString(L"0.4.0 (Unified Release Build)", -1, &regF, Gdiplus::RectF(aValX, curY, aValW, 20.0f), &fmt, &cyanTxt);
     curY += 26.0f;
-    g.DrawString(L"Technology Stack:", -1, &boldF, Gdiplus::PointF(innerX, curY), &whiteTxt);
-    g.DrawString(L"Direct3D 11 DXGI Duplication & WMF H.264", -1, &regF, Gdiplus::PointF(innerX + 150.0f, curY), &cyanTxt);
+    g.DrawString(L"Technology Stack:", -1, &boldF, Gdiplus::RectF(innerX, curY, aLblW, 20.0f), &fmt, &whiteTxt);
+    g.DrawString(L"Direct3D 11 DXGI Duplication & WMF H.264", -1, &regF, Gdiplus::RectF(aValX, curY, aValW, 20.0f), &fmt, &cyanTxt);
     curY += 26.0f;
-    g.DrawString(L"Virtual Display Driver:", -1, &boldF, Gdiplus::PointF(innerX, curY), &whiteTxt);
-    g.DrawString(L"Microsoft Indirect Display Driver (IddCx / UMDF 2.x)", -1, &regF, Gdiplus::PointF(innerX + 150.0f, curY), &cyanTxt);
+    g.DrawString(L"Virtual Display Driver:", -1, &boldF, Gdiplus::RectF(innerX, curY, aLblW, 20.0f), &fmt, &whiteTxt);
+    g.DrawString(L"Microsoft Indirect Display Driver (IddCx / UMDF 2.x)", -1, &regF, Gdiplus::RectF(aValX, curY, aValW, 20.0f), &fmt, &cyanTxt);
     curY += 34.0f;
 
     // Privacy & Security Card
@@ -1637,9 +1837,9 @@ void DrawAboutTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     Gdiplus::Pen privPen(Gdiplus::Color(255, 30, 48, 86), 1.0f);
     g.DrawPath(&privPen, &privPath);
 
-    g.DrawString(L"Privacy & Peer-to-Peer Security", -1, &boldF, Gdiplus::PointF(innerX + 12.0f, curY + 10.0f), &cyanTxt);
+    g.DrawString(L"Privacy & Peer-to-Peer Security", -1, &boldF, Gdiplus::RectF(innerX + 12.0f, curY + 10.0f, innerW - 24.0f, 18.0f), &fmt, &cyanTxt);
     g.DrawString(L"Zero cloud servers. Screen transmission, audio, and touch input\n"
-                 L"remain 100% peer-to-peer on your local Wi-Fi or direct USB cable.", -1, &regF, Gdiplus::PointF(innerX + 12.0f, curY + 30.0f), &whiteTxt);
+                 L"remain 100% peer-to-peer on your local Wi-Fi or direct USB cable.", -1, &regF, Gdiplus::RectF(innerX + 12.0f, curY + 30.0f, innerW - 24.0f, 44.0f), &fmt, &whiteTxt);
 
     Gdiplus::RectF rightRc((float)rightX, (float)cardTop, (float)rightW, (float)(cardBottom - cardTop));
     DrawCardContainer(g, rightRc, L"Developer & Open Source Project", L"Author, repository, and release distribution", 2);
@@ -2439,7 +2639,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         } else if (id == IDC_BTN_REGEN_QR) {
             OnRegenerateQrClicked();
         } else if (id == IDC_BTN_INSTALL_DRIVER || id == IDC_BTN_DRIVER_TAB_INSTALL) {
-            OnInstallDriverClicked();
+            if (g_driverInfo.state == DriverState::InstalledButNotOperational) {
+                OnRepairDriverClicked();
+            } else if (g_driverInfo.state == DriverState::UpdateAvailable) {
+                OnUpdateDriverClicked();
+            } else if (g_driverInfo.state == DriverState::DetectionFailed) {
+                RefreshDriverStatus();
+            } else {
+                OnInstallDriverClicked();
+            }
         } else if (id == IDC_BTN_UNINSTALL_DRIVER || id == IDC_BTN_DRIVER_TAB_UNINSTALL) {
             OnUninstallDriverClicked();
         } else if (id == IDC_BTN_DRIVER_TAB_REPAIR) {
@@ -2878,30 +3086,57 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // -----------------------------------------------------------------
             float footerY = (float)(clientH - (g_logsExpanded ? 160 : 42));
 
-            // Center: Reachable LAN Address
+            // Center: Reachable LAN Address & USB Tethered Endpoint
             std::string primIp = "127.0.0.1";
+            std::string usbIp = "";
             if (g_pairingMgr) {
-                const auto endpoints = g_pairingMgr->GetLocalIPv4Endpoints();
-                if (!endpoints.empty()) primIp = endpoints[0];
+                usbIp = g_pairingMgr->GetUsbTetheredEndpoint();
+                std::string wifiIp = g_pairingMgr->GetWifiEndpoint();
+                if (!wifiIp.empty()) {
+                    primIp = wifiIp;
+                } else {
+                    const auto endpoints = g_pairingMgr->GetLocalIPv4Endpoints();
+                    if (!endpoints.empty()) primIp = endpoints[0];
+                }
             }
             std::wstring wPrimIp(primIp.begin(), primIp.end());
+            std::wstring wUsbIp(usbIp.begin(), usbIp.end());
 
-            DrawVectorInfo(g, 370.0f, footerY + 8.0f, 13.0f, Gdiplus::Color(255, 126, 145, 173));
+            DrawVectorInfo(g, 360.0f, footerY + 8.0f, 13.0f, Gdiplus::Color(255, 126, 145, 173));
 
             Gdiplus::Font footFont(L"Segoe UI", 9.0f, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
             Gdiplus::SolidBrush footBrush(Gdiplus::Color(255, 126, 145, 173));
-            g.DrawString(L"Reachable LAN Address: ", -1, &footFont, Gdiplus::PointF(390.0f, footerY + 6.0f), &footBrush);
-
-            Gdiplus::RectF ipLabelBounds;
-            g.MeasureString(L"Reachable LAN Address: ", -1, &footFont, Gdiplus::PointF(390.0f, footerY + 6.0f), &ipLabelBounds);
-
             Gdiplus::Font ipFont(L"Segoe UI", 9.0f, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
             Gdiplus::SolidBrush cyanFootBrush(Gdiplus::Color(255, 56, 189, 248)); // #38BDF8
-            g.DrawString(wPrimIp.c_str(), -1, &ipFont, Gdiplus::PointF(390.0f + ipLabelBounds.Width, footerY + 6.0f), &cyanFootBrush);
+            Gdiplus::SolidBrush purpleFootBrush(Gdiplus::Color(255, 192, 132, 252)); // #C084FC
 
-            // Right: Wi-Fi Notice
+            if (!usbIp.empty()) {
+                g.DrawString(L"Reachable Endpoints: ", -1, &footFont, Gdiplus::PointF(380.0f, footerY + 6.0f), &footBrush);
+                Gdiplus::RectF ipLabelBounds;
+                g.MeasureString(L"Reachable Endpoints: ", -1, &footFont, Gdiplus::PointF(380.0f, footerY + 6.0f), &ipLabelBounds);
+
+                float curX = 380.0f + ipLabelBounds.Width;
+                std::wstring lanText = L"LAN " + wPrimIp;
+                g.DrawString(lanText.c_str(), -1, &ipFont, Gdiplus::PointF(curX, footerY + 6.0f), &cyanFootBrush);
+                Gdiplus::RectF lanBounds;
+                g.MeasureString(lanText.c_str(), -1, &ipFont, Gdiplus::PointF(curX, footerY + 6.0f), &lanBounds);
+
+                curX += lanBounds.Width + 10.0f;
+                g.DrawString(L"•", -1, &footFont, Gdiplus::PointF(curX, footerY + 6.0f), &footBrush);
+                curX += 12.0f;
+
+                std::wstring usbText = L"⚡ USB " + wUsbIp;
+                g.DrawString(usbText.c_str(), -1, &ipFont, Gdiplus::PointF(curX, footerY + 6.0f), &purpleFootBrush);
+            } else {
+                g.DrawString(L"Reachable LAN Address: ", -1, &footFont, Gdiplus::PointF(380.0f, footerY + 6.0f), &footBrush);
+                Gdiplus::RectF ipLabelBounds;
+                g.MeasureString(L"Reachable LAN Address: ", -1, &footFont, Gdiplus::PointF(380.0f, footerY + 6.0f), &ipLabelBounds);
+                g.DrawString(wPrimIp.c_str(), -1, &ipFont, Gdiplus::PointF(380.0f + ipLabelBounds.Width, footerY + 6.0f), &cyanFootBrush);
+            }
+
+            // Right: Network Notice
             DrawVectorWifi(g, (float)(clientW - 350), footerY + 8.0f, 13.0f, Gdiplus::Color(255, 126, 145, 173));
-            g.DrawString(L"Android and PC must be connected to the same Wi-Fi.", -1, &footFont,
+            g.DrawString(usbIp.empty() ? L"Connect via same Wi-Fi or plug in USB cable." : L"⚡ High-speed wired USB tethering active.", -1, &footFont,
                          Gdiplus::PointF((float)(clientW - 330), footerY + 6.0f), &footBrush);
         } else if (g_currentTab == TAB_STREAMING) {
             DrawStreamingTab(g, clientW, clientH);
@@ -2921,27 +3156,54 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if (g_currentTab != TAB_HOME) {
             float footerY = (float)(clientH - (g_logsExpanded ? 160 : 42));
             std::string primIp = "127.0.0.1";
+            std::string usbIp = "";
             if (g_pairingMgr) {
-                const auto endpoints = g_pairingMgr->GetLocalIPv4Endpoints();
-                if (!endpoints.empty()) primIp = endpoints[0];
+                usbIp = g_pairingMgr->GetUsbTetheredEndpoint();
+                std::string wifiIp = g_pairingMgr->GetWifiEndpoint();
+                if (!wifiIp.empty()) {
+                    primIp = wifiIp;
+                } else {
+                    const auto endpoints = g_pairingMgr->GetLocalIPv4Endpoints();
+                    if (!endpoints.empty()) primIp = endpoints[0];
+                }
             }
             std::wstring wPrimIp(primIp.begin(), primIp.end());
+            std::wstring wUsbIp(usbIp.begin(), usbIp.end());
 
-            DrawVectorInfo(g, 370.0f, footerY + 8.0f, 13.0f, Gdiplus::Color(255, 126, 145, 173));
+            DrawVectorInfo(g, 360.0f, footerY + 8.0f, 13.0f, Gdiplus::Color(255, 126, 145, 173));
 
             Gdiplus::Font footFont(L"Segoe UI", 9.0f, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
             Gdiplus::SolidBrush footBrush(Gdiplus::Color(255, 126, 145, 173));
-            g.DrawString(L"Reachable LAN Address: ", -1, &footFont, Gdiplus::PointF(390.0f, footerY + 6.0f), &footBrush);
-
-            Gdiplus::RectF ipLabelBounds;
-            g.MeasureString(L"Reachable LAN Address: ", -1, &footFont, Gdiplus::PointF(390.0f, footerY + 6.0f), &ipLabelBounds);
-
             Gdiplus::Font ipFont(L"Segoe UI", 9.0f, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
             Gdiplus::SolidBrush cyanFootBrush(Gdiplus::Color(255, 56, 189, 248));
-            g.DrawString(wPrimIp.c_str(), -1, &ipFont, Gdiplus::PointF(390.0f + ipLabelBounds.Width, footerY + 6.0f), &cyanFootBrush);
+            Gdiplus::SolidBrush purpleFootBrush(Gdiplus::Color(255, 192, 132, 252));
+
+            if (!usbIp.empty()) {
+                g.DrawString(L"Reachable Endpoints: ", -1, &footFont, Gdiplus::PointF(380.0f, footerY + 6.0f), &footBrush);
+                Gdiplus::RectF ipLabelBounds;
+                g.MeasureString(L"Reachable Endpoints: ", -1, &footFont, Gdiplus::PointF(380.0f, footerY + 6.0f), &ipLabelBounds);
+
+                float curX = 380.0f + ipLabelBounds.Width;
+                std::wstring lanText = L"LAN " + wPrimIp;
+                g.DrawString(lanText.c_str(), -1, &ipFont, Gdiplus::PointF(curX, footerY + 6.0f), &cyanFootBrush);
+                Gdiplus::RectF lanBounds;
+                g.MeasureString(lanText.c_str(), -1, &ipFont, Gdiplus::PointF(curX, footerY + 6.0f), &lanBounds);
+
+                curX += lanBounds.Width + 10.0f;
+                g.DrawString(L"•", -1, &footFont, Gdiplus::PointF(curX, footerY + 6.0f), &footBrush);
+                curX += 12.0f;
+
+                std::wstring usbText = L"⚡ USB " + wUsbIp;
+                g.DrawString(usbText.c_str(), -1, &ipFont, Gdiplus::PointF(curX, footerY + 6.0f), &purpleFootBrush);
+            } else {
+                g.DrawString(L"Reachable LAN Address: ", -1, &footFont, Gdiplus::PointF(380.0f, footerY + 6.0f), &footBrush);
+                Gdiplus::RectF ipLabelBounds;
+                g.MeasureString(L"Reachable LAN Address: ", -1, &footFont, Gdiplus::PointF(380.0f, footerY + 6.0f), &ipLabelBounds);
+                g.DrawString(wPrimIp.c_str(), -1, &ipFont, Gdiplus::PointF(380.0f + ipLabelBounds.Width, footerY + 6.0f), &cyanFootBrush);
+            }
 
             DrawVectorWifi(g, (float)(clientW - 350), footerY + 8.0f, 13.0f, Gdiplus::Color(255, 126, 145, 173));
-            g.DrawString(L"Android and PC must be connected to the same Wi-Fi.", -1, &footFont,
+            g.DrawString(usbIp.empty() ? L"Connect via same Wi-Fi or plug in USB cable." : L"⚡ High-speed wired USB tethering active.", -1, &footFont,
                          Gdiplus::PointF((float)(clientW - 330), footerY + 6.0f), &footBrush);
         }
 

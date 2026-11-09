@@ -1,10 +1,53 @@
 #include "discovery/udp_discovery_responder.hpp"
 
 #include <iostream>
+#include <vector>
 #include <ws2tcpip.h>
 #include <windows.h>
+#include <iphlpapi.h>
+
+#pragma comment(lib, "iphlpapi.lib")
 
 namespace secondscreen::discovery {
+
+static std::vector<uint32_t> GetSubnetBroadcastAddresses() {
+    std::vector<uint32_t> broadcasts;
+    ULONG outBufLen = 15000;
+    std::vector<uint8_t> buffer(outBufLen);
+    PIP_ADAPTER_ADDRESSES pAddresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.data());
+
+    ULONG flags = GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+    DWORD ret = GetAdaptersAddresses(AF_INET, flags, nullptr, pAddresses, &outBufLen);
+    if (ret == ERROR_BUFFER_OVERFLOW) {
+        buffer.resize(outBufLen);
+        pAddresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.data());
+        ret = GetAdaptersAddresses(AF_INET, flags, nullptr, pAddresses, &outBufLen);
+    }
+
+    if (ret == NO_ERROR) {
+        for (PIP_ADAPTER_ADDRESSES pCurr = pAddresses; pCurr != nullptr; pCurr = pCurr->Next) {
+            if (pCurr->OperStatus != IfOperStatusUp) continue;
+            if (pCurr->IfType == IF_TYPE_SOFTWARE_LOOPBACK) continue;
+
+            for (PIP_ADAPTER_UNICAST_ADDRESS pUni = pCurr->FirstUnicastAddress; pUni != nullptr; pUni = pUni->Next) {
+                sockaddr* sa = pUni->Address.lpSockaddr;
+                if (sa && sa->sa_family == AF_INET) {
+                    sockaddr_in* sin = reinterpret_cast<sockaddr_in*>(sa);
+                    const uint32_t ipVal = sin->sin_addr.s_addr;
+                    const uint8_t prefixLen = pUni->OnLinkPrefixLength;
+                    if (prefixLen > 0 && prefixLen <= 32) {
+                        const uint32_t netMask = htonl(~0U << (32 - prefixLen));
+                        const uint32_t bcastVal = ipVal | (~netMask);
+                        if (bcastVal != 0 && bcastVal != INADDR_BROADCAST && bcastVal != ipVal) {
+                            broadcasts.push_back(bcastVal);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return broadcasts;
+}
 
 UdpDiscoveryResponder::UdpDiscoveryResponder() {
     char nameBuf[256] = {0};
@@ -122,12 +165,24 @@ void UdpDiscoveryResponder::BeaconLoop() {
 
     while (isRunning_.load()) {
         if (socket_ != INVALID_SOCKET) {
+            // 1. Send to global broadcast 255.255.255.255
             sendto(socket_, beacon.c_str(), static_cast<int>(beacon.size()), 0,
                    reinterpret_cast<sockaddr*>(&broadcastAddr), sizeof(broadcastAddr));
+
+            // 2. Broadcast on each active subnet directed broadcast (essential for USB Tethering & multi-homed links)
+            const auto subnets = GetSubnetBroadcastAddresses();
+            for (const uint32_t bcast : subnets) {
+                sockaddr_in targetAddr{};
+                targetAddr.sin_family = AF_INET;
+                targetAddr.sin_addr.s_addr = bcast;
+                targetAddr.sin_port = htons(discoveryPort_);
+                sendto(socket_, beacon.c_str(), static_cast<int>(beacon.size()), 0,
+                       reinterpret_cast<sockaddr*>(&targetAddr), sizeof(targetAddr));
+            }
         }
 
-        // Sleep for 2.5 seconds between periodic beacons
-        for (int i = 0; i < 25 && isRunning_.load(); ++i) {
+        // Sleep for 2.0 seconds between periodic beacons
+        for (int i = 0; i < 20 && isRunning_.load(); ++i) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     }

@@ -113,6 +113,7 @@ void TcpTransportServer::AcceptLoop() {
                 closesocket(clientSocket_);
             }
             clientSocket_ = newClient;
+            clientIp_ = ipStr;
             isClientConnected_.store(true);
         }
 
@@ -162,6 +163,7 @@ void TcpTransportServer::ReceiveLoop(SOCKET clientSock) {
         if (clientSocket_ == clientSock) {
             closesocket(clientSocket_);
             clientSocket_ = INVALID_SOCKET;
+            clientIp_.clear();
             isClientConnected_.store(false);
         }
     }
@@ -251,6 +253,11 @@ void TcpTransportServer::Stop() {
 
 bool TcpTransportServer::IsClientConnected() const noexcept {
     return isClientConnected_.load();
+}
+
+std::string TcpTransportServer::GetClientIp() const {
+    std::lock_guard<std::mutex> lock(const_cast<std::mutex&>(clientMutex_));
+    return isClientConnected_.load() ? clientIp_ : "";
 }
 
 } // namespace secondscreen::transport

@@ -10,7 +10,7 @@ net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Administrative privileges required.
     echo Please right-click this script and select 'Run as administrator'.
-    pause
+    if not "%~1"=="--silent" if not "%~1"=="/silent" pause
     exit /b 1
 )
 
@@ -36,4 +36,7 @@ echo.
 echo ========================================================
 echo Uninstallation completed. Virtual display removed.
 echo ========================================================
+if /i "%~1"=="--silent" exit /b 0
+if /i "%~1"=="/silent" exit /b 0
+if /i "%~1"=="-s" exit /b 0
 pause

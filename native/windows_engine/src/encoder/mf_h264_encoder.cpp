@@ -138,6 +138,7 @@ struct MfH264Encoder::Impl {
     bool isInitialized{false};
     bool hasExtractedConfig{false};
     std::vector<uint8_t> cachedCodecConfig{};
+    std::atomic<bool> forceKeyframeNext{true};
 
     uint32_t width{0U};
     uint32_t height{0U};
@@ -402,6 +403,16 @@ struct MfH264Encoder::Impl {
         const LONGLONG sampleDurationHns = static_cast<LONGLONG>(10000000ULL / targetFps);
         inSample->SetSampleTime(sampleTimeHns);
         inSample->SetSampleDuration(sampleDurationHns);
+        if (forceKeyframeNext.load()) {
+            inSample->SetUINT32(MFSampleExtension_CleanPoint, TRUE);
+            if (codecApi) {
+                VARIANT var;
+                VariantInit(&var);
+                var.vt = VT_UI4;
+                var.ulVal = 1;
+                codecApi->SetValue(&CODECAPI_AVEncVideoForceKeyFrame, &var);
+            }
+        }
         ++sampleCount;
 
         hr = transform->ProcessInput(0, inSample.Get(), 0);
@@ -471,26 +482,41 @@ struct MfH264Encoder::Impl {
 
                         // 1. Check if SPS/PPS codec configuration is present
                         std::vector<uint8_t> spsPps;
-                        if (H264Parser::ExtractSpsPps(bitstream, spsPps)) {
-                            if (!hasExtractedConfig || spsPps != cachedCodecConfig) {
-                                hasExtractedConfig = true;
-                                cachedCodecConfig = spsPps;
-
-                                if (callback) {
-                                    EncodedPacket cfgPkt{};
-                                    cfgPkt.type = protocol::PacketType::Config;
-                                    cfgPkt.timestampUs = fallbackTimestampUs;
-                                    cfgPkt.data = spsPps;
-                                    cfgPkt.isKeyframe = true;
-                                    cfgPkt.encodeDurationUs = encodeDurUs;
-                                    cfgPkt.sequenceNumber = ++sequenceNumber;
-                                    callback(cfgPkt);
-                                }
-                            }
+                        const bool hasSpsPps = H264Parser::ExtractSpsPps(bitstream, spsPps);
+                        if (hasSpsPps) {
+                            hasExtractedConfig = true;
+                            cachedCodecConfig = spsPps;
                         }
 
                         // 2. Classify and emit video access unit (IDR vs Delta)
-                        const bool isKey = H264Parser::ContainsIdrSlice(bitstream);
+                        const bool isKey = H264Parser::ContainsIdrSlice(bitstream) || forceKeyframeNext.load();
+                        if (isKey) {
+                            forceKeyframeNext.store(false);
+
+                            // Always dispatch fresh SPS/PPS configuration immediately preceding an IDR keyframe
+                            if (callback && (hasSpsPps || !cachedCodecConfig.empty())) {
+                                const auto& cfgBytes = hasSpsPps ? spsPps : cachedCodecConfig;
+                                EncodedPacket cfgPkt{};
+                                cfgPkt.type = protocol::PacketType::Config;
+                                cfgPkt.timestampUs = fallbackTimestampUs;
+                                cfgPkt.data = cfgBytes;
+                                cfgPkt.isKeyframe = true;
+                                cfgPkt.encodeDurationUs = encodeDurUs;
+                                cfgPkt.sequenceNumber = ++sequenceNumber;
+                                callback(cfgPkt);
+                            }
+                        } else if (hasSpsPps && !hasExtractedConfig) {
+                            if (callback) {
+                                EncodedPacket cfgPkt{};
+                                cfgPkt.type = protocol::PacketType::Config;
+                                cfgPkt.timestampUs = fallbackTimestampUs;
+                                cfgPkt.data = spsPps;
+                                cfgPkt.isKeyframe = true;
+                                cfgPkt.encodeDurationUs = encodeDurUs;
+                                cfgPkt.sequenceNumber = ++sequenceNumber;
+                                callback(cfgPkt);
+                            }
+                        }
 
                         if (callback) {
                             EncodedPacket videoPkt{};
@@ -519,6 +545,7 @@ struct MfH264Encoder::Impl {
     }
 
     void RequestKeyframe() {
+        forceKeyframeNext.store(true);
         if (codecApi) {
             VARIANT var;
             VariantInit(&var);

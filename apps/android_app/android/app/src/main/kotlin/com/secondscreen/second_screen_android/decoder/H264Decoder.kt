@@ -302,11 +302,22 @@ class H264Decoder(
      * Submits an encoded H.264 access unit (KEYFRAME or DELTA) into the decoder.
      */
     fun feedAccessUnit(data: ByteArray, timestampUs: Long, isKeyframeHint: Boolean = false): Boolean {
-        val currentStateVal = currentState.get()
+        var currentStateVal = currentState.get()
         if (currentStateVal != State.DECODING && currentStateVal != State.WAITING_FOR_KEYFRAME) {
             if (currentStateVal == State.WAITING_FOR_CONFIG) {
-                Log.w(TAG, "Discarding frame: waiting for codec configuration.")
-                return false
+                // Check if this access unit contains inline SPS/PPS (common for WMF IDR keyframes)
+                val inlineConfig = H264ConfigParser.parseConfig(data)
+                if (inlineConfig != null) {
+                    Log.i(TAG, "Found inline SPS/PPS in access unit! Auto-configuring decoder...")
+                    if (feedConfig(data)) {
+                        currentStateVal = currentState.get()
+                    } else {
+                        return false
+                    }
+                } else {
+                    Log.w(TAG, "Discarding frame: waiting for codec configuration.")
+                    return false
+                }
             } else if (currentStateVal == State.ERROR || currentStateVal == State.RELEASED) {
                 return false
             }

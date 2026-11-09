@@ -64,6 +64,15 @@ bool EngineRunner::IsRunning() const noexcept {
     return isRunning_.load();
 }
 
+ClientStatus EngineRunner::GetClientStatus() const noexcept {
+    return clientStatus_.load();
+}
+
+std::string EngineRunner::GetClientIp() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return clientIp_;
+}
+
 std::string EngineRunner::GetLastError() const {
     std::lock_guard<std::mutex> lock(mutex_);
     return lastError_;
@@ -160,6 +169,9 @@ void EngineRunner::WorkerLoop(EngineOptions options,
         adaptiveController.RecordSendDuration(static_cast<uint64_t>(sendDurationUs));
         if (!sent) {
             adaptiveController.RecordSocketBackpressure(true);
+        } else if (clientStatus_.load() == ClientStatus::SendingInitialKeyframe &&
+                   packet.type == secondscreen::protocol::PacketType::Keyframe) {
+            clientStatus_ = ClientStatus::ClientStreaming;
         }
     };
 
@@ -188,9 +200,22 @@ void EngineRunner::WorkerLoop(EngineOptions options,
 
         if (header.packetType == secondscreen::protocol::PacketType::KeyframeRequest) {
             const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastKeyframeReqTime).count();
-            if (elapsedMs >= 500) {
+            if (elapsedMs >= 300) {
                 lastKeyframeReqTime = now;
-                log("[INFO] Received upstream PACKET_TYPE_KEYFRAME_REQ. Forcing IDR keyframe.");
+                log("[INFO] Received upstream PACKET_TYPE_KEYFRAME_REQ. Resending Config and forcing IDR keyframe.");
+                if (encoder.HasExtractedConfig()) {
+                    const auto& spsPps = encoder.GetCodecConfig();
+                    secondscreen::protocol::ProtocolHeader cfgHeader{};
+                    cfgHeader.magic = secondscreen::protocol::PROTOCOL_MAGIC_U32;
+                    cfgHeader.version = secondscreen::protocol::PROTOCOL_VERSION_2;
+                    cfgHeader.packetType = secondscreen::protocol::PacketType::Config;
+                    cfgHeader.sequenceNumber = ++outSequence;
+                    cfgHeader.payloadLength = static_cast<uint32_t>(spsPps.size());
+                    cfgHeader.timestampUs = std::chrono::duration_cast<std::chrono::microseconds>(
+                        std::chrono::steady_clock::now().time_since_epoch()).count();
+
+                    server.SendPacket(cfgHeader, spsPps);
+                }
                 encoder.RequestKeyframe();
             }
         } else if (header.packetType == secondscreen::protocol::PacketType::ReceiverReport) {
@@ -306,7 +331,13 @@ void EngineRunner::WorkerLoop(EngineOptions options,
 
     // 5. Client connection callbacks
     server.SetClientConnectedCallback([&]() {
-        log("[INFO] Client attached. Dispatching configuration and forcing initial IDR keyframe...");
+        const std::string cIp = server.GetClientIp();
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            clientIp_ = cIp;
+        }
+        clientStatus_ = ClientStatus::ClientInitializing;
+        log("[INFO] Client attached from " + cIp + ". Dispatching configuration and forcing initial IDR keyframe...");
         adaptiveController.Reset();
 
         if (encoder.HasExtractedConfig()) {
@@ -322,12 +353,18 @@ void EngineRunner::WorkerLoop(EngineOptions options,
 
             server.SendPacket(cfgHeader, spsPps);
         }
+        clientStatus_ = ClientStatus::SendingInitialKeyframe;
         encoder.RequestKeyframe();
     });
 
     server.SetClientDisconnectedCallback([&]() {
         log("[INFO] Client disconnected. Releasing all held synthetic inputs.");
         inputInjector.ReleaseAll();
+        clientStatus_ = ClientStatus::WaitingForClient;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            clientIp_.clear();
+        }
     });
 
     // 6. Start TCP Server & UDP Discovery Responder
@@ -395,6 +432,12 @@ void EngineRunner::WorkerLoop(EngineOptions options,
     encoder.Shutdown();
     capturer.Shutdown();
     inputInjector.ReleaseAll();
+
+    clientStatus_ = ClientStatus::WaitingForClient;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        clientIp_.clear();
+    }
 
     isRunning_ = false;
     log("[INFO] Streaming engine stopped cleanly.");

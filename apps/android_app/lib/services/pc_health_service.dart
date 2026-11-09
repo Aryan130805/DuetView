@@ -16,8 +16,10 @@ class PcHealthService with WidgetsBindingObserver {
 
   Timer? _timer;
   bool _isChecking = false;
+  bool _isPaused = false;
   final Map<String, int> _consecutiveMisses = {};
   String? _activelyStreamingPcId;
+  String? _activelyStreamingHost;
 
   PcHealthService({
     required this.storage,
@@ -41,8 +43,17 @@ class PcHealthService with WidgetsBindingObserver {
     _timer = null;
   }
 
-  void setActivelyStreamingPc(String? pcId) {
+  void pauseHealthChecks() {
+    _isPaused = true;
+  }
+
+  void resumeHealthChecks() {
+    _isPaused = false;
+  }
+
+  void setActivelyStreamingPc(String? pcId, {String? host}) {
     _activelyStreamingPcId = pcId;
+    _activelyStreamingHost = host;
     if (pcId != null) {
       storage.updatePcStatus(pcId, PcOnlineStatus.streaming);
     }
@@ -58,7 +69,7 @@ class PcHealthService with WidgetsBindingObserver {
   }
 
   Future<void> checkAllNow() async {
-    if (_isChecking) return;
+    if (_isChecking || _isPaused) return;
     _isChecking = true;
 
     try {
@@ -66,6 +77,9 @@ class PcHealthService with WidgetsBindingObserver {
       for (final pc in pcs) {
         if (pc.id == _activelyStreamingPcId) {
           continue; // Do not interrupt active stream with health checks
+        }
+        if (_activelyStreamingHost != null && pc.endpoints.contains(_activelyStreamingHost)) {
+          continue; // Skip any PC matching the actively connected IP
         }
         await _checkSinglePc(pc);
       }

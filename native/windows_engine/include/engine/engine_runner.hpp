@@ -25,6 +25,15 @@ struct EngineOptions {
     int selectedMonitor{-1}; // -1 = auto-detect virtual/extended display
 };
 
+enum class ClientStatus {
+    WaitingForClient,
+    ClientConnecting,
+    ClientInitializing,
+    SendingInitialKeyframe,
+    ClientStreaming,
+    ClientDisconnected
+};
+
 class EngineRunner {
 public:
     EngineRunner();
@@ -40,6 +49,8 @@ public:
     void Stop();
 
     [[nodiscard]] bool IsRunning() const noexcept;
+    [[nodiscard]] ClientStatus GetClientStatus() const noexcept;
+    [[nodiscard]] std::string GetClientIp() const;
     [[nodiscard]] std::string GetLastError() const;
 
 private:
@@ -49,6 +60,8 @@ private:
 
     std::atomic<bool> isRunning_{false};
     std::atomic<bool> stopRequested_{false};
+    std::atomic<ClientStatus> clientStatus_{ClientStatus::WaitingForClient};
+    std::string clientIp_{};
     std::thread workerThread_;
     mutable std::mutex mutex_;
     std::string lastError_;

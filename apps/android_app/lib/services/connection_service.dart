@@ -7,6 +7,7 @@ import '../models/connection_state.dart';
 import '../models/pc_device.dart';
 import 'decoder_bridge.dart';
 import 'frame_accumulator.dart';
+import 'usb_tether_service.dart';
 
 typedef SocketConnector = Future<Socket> Function(
   dynamic host,
@@ -23,7 +24,12 @@ abstract class ConnectionService extends ChangeNotifier {
   bool get isSocketConnected;
   bool get isReconnecting;
 
-  Future<bool> connectToDevice(String address, int port, {String? pcName});
+  Future<bool> connectToDevice(
+    String address,
+    int port, {
+    String? pcName,
+    bool isUsb = false,
+  });
   Future<bool> reconnect({
     int maxAttempts = 5,
     Duration initialDelay = const Duration(milliseconds: 500),
@@ -79,6 +85,7 @@ class DefaultConnectionService extends ChangeNotifier
   FrameAccumulator? _accumulator;
   StreamSubscription<void>? _keyframeRequestSubscription;
   PcDevice? _lastConnectedDevice;
+  bool _lastConnectWasUsb = false;
   bool _isReconnecting = false;
   bool _isCancelled = false;
   bool _isClosing = false;
@@ -87,6 +94,8 @@ class DefaultConnectionService extends ChangeNotifier
   int _droppedFramesCount = 0;
   DateTime _lastKeyframeRequestTime = DateTime.fromMillisecondsSinceEpoch(0);
   Timer? _receiverReportTimer;
+  Timer? _initialKeyframeTimer;
+  int _initialKeyframeRetryCount = 0;
 
   final List<int> _recentFrameTimestamps = [];
 
@@ -140,7 +149,9 @@ class DefaultConnectionService extends ChangeNotifier
     String address,
     int port, {
     String? pcName,
+    bool isUsb = false,
   }) async {
+    _lastConnectWasUsb = isUsb;
     final cleanAddress = address.trim();
 
     // 1. Validate inputs
@@ -162,6 +173,19 @@ class DefaultConnectionService extends ChangeNotifier
           status: ConnectionStatus.failed,
           errorMessage:
               'Invalid port "$port". Port must be between 1 and 65535.',
+          clearDevice: true,
+        ),
+      );
+      return false;
+    }
+
+    // Guard against attempting to connect to Android's own IP address
+    if (await UsbTetherService.isLocalAndroidIp(cleanAddress)) {
+      _updateState(
+        _state.copyWith(
+          status: ConnectionStatus.failed,
+          errorMessage:
+              'Cannot connect to Android\'s own IP ($cleanAddress). Please enter the Windows PC\'s IP address shown in DuetView PC.',
           clearDevice: true,
         ),
       );
@@ -251,7 +275,10 @@ class DefaultConnectionService extends ChangeNotifier
       _activeSocket = socket;
       _listenToSocket(socket);
 
-      // Connected to TCP socket; awaiting codec configuration or stream frames
+      // Connected to TCP socket; request initial IDR keyframe and start keyframe recovery timer
+      sendKeyframeRequest();
+      _startInitialKeyframeRecoveryTimer();
+
       _updateState(
         _state.copyWith(
           status: ConnectionStatus.connected,
@@ -268,24 +295,30 @@ class DefaultConnectionService extends ChangeNotifier
     } on SocketException catch (e) {
       if (_isCancelled) return false;
       debugPrint('ConnectionService: Socket error: $e');
+      final errorMsg = isUsb
+          ? 'Cannot connect to PC via USB cable on $cleanAddress:$port. '
+            'Please ensure USB Tethering is enabled in Android settings and DuetView PC is running on your computer.'
+          : 'Could not connect to $cleanAddress:$port. '
+            'Make sure the Windows PC is on the same local Wi-Fi network and the host server is running.';
       _updateState(
         _state.copyWith(
           status: ConnectionStatus.failed,
-          errorMessage:
-              'Could not connect to $cleanAddress:$port. '
-              'Make sure the Windows PC is on the same local Wi-Fi network and the host server is running.',
+          errorMessage: errorMsg,
         ),
       );
       return false;
     } on TimeoutException {
       if (_isCancelled) return false;
       debugPrint('ConnectionService: Connection timed out.');
+      final errorMsg = isUsb
+          ? 'Connection to $cleanAddress:$port timed out. '
+            'Ensure the USB cable is firmly connected, USB Tethering is active, and Windows Defender Firewall allows port $port.'
+          : 'Connection timed out after 4 seconds. '
+            'Please verify the PC\'s IP address and ensure Windows Firewall allows port $port.';
       _updateState(
         _state.copyWith(
           status: ConnectionStatus.failed,
-          errorMessage:
-              'Connection timed out after 4 seconds. '
-              'Please verify the PC\'s IP address and ensure Windows Firewall allows port $port.',
+          errorMessage: errorMsg,
         ),
       );
       return false;
@@ -304,6 +337,7 @@ class DefaultConnectionService extends ChangeNotifier
 
   void _onConnectionDropped(String reason) {
     if (_isClosing || _isDisposed) return;
+    _cancelInitialKeyframeRecoveryTimer();
     _activeSocket?.destroy();
     _activeSocket = null;
     _receiverReportTimer?.cancel();
@@ -339,6 +373,95 @@ class DefaultConnectionService extends ChangeNotifier
         ),
       );
     }
+  }
+
+  void _startInitialKeyframeRecoveryTimer() {
+    _cancelInitialKeyframeRecoveryTimer();
+    _initialKeyframeRetryCount = 0;
+    _initialKeyframeTimer = Timer.periodic(
+      const Duration(milliseconds: 1200),
+      (timer) {
+        if (_state.hasReceivedFirstKeyframe || _activeSocket == null) {
+          _cancelInitialKeyframeRecoveryTimer();
+          return;
+        }
+        _initialKeyframeRetryCount++;
+        if (_initialKeyframeRetryCount <= 4) {
+          debugPrint(
+            'ConnectionService: Initial keyframe recovery attempt $_initialKeyframeRetryCount/4...',
+          );
+          sendKeyframeRequest();
+        } else {
+          _cancelInitialKeyframeRecoveryTimer();
+          debugPrint(
+            'ConnectionService: Initial keyframe recovery timed out after 4 attempts.',
+          );
+        }
+      },
+    );
+  }
+
+  void _cancelInitialKeyframeRecoveryTimer() {
+    _initialKeyframeTimer?.cancel();
+    _initialKeyframeTimer = null;
+  }
+
+  static Uint8List? _extractInlineSpsPps(Uint8List payload) {
+    if (payload.length < 8) return null;
+    final startCodeIndices = <int>[];
+    for (int i = 0; i < payload.length - 3; i++) {
+      if (payload[i] == 0 && payload[i + 1] == 0) {
+        if (payload[i + 2] == 1) {
+          startCodeIndices.add(i);
+        } else if (payload[i + 2] == 0 &&
+            i < payload.length - 4 &&
+            payload[i + 3] == 1) {
+          startCodeIndices.add(i);
+          i++; // skip
+        }
+      }
+    }
+    if (startCodeIndices.isEmpty) return null;
+
+    int? spsStart;
+    int? spsEnd;
+    int? ppsStart;
+    int? ppsEnd;
+
+    for (int idx = 0; idx < startCodeIndices.length; idx++) {
+      final start = startCodeIndices[idx];
+      final prefixLen =
+          (start + 3 < payload.length && payload[start + 2] == 1) ? 3 : 4;
+      final nalHeaderIdx = start + prefixLen;
+      if (nalHeaderIdx >= payload.length) continue;
+      final nalType = payload[nalHeaderIdx] & 0x1F;
+      final nextStart = (idx + 1 < startCodeIndices.length)
+          ? startCodeIndices[idx + 1]
+          : payload.length;
+
+      if (nalType == 7) {
+        // SPS
+        spsStart = start;
+        spsEnd = nextStart;
+      } else if (nalType == 8) {
+        // PPS
+        ppsStart = start;
+        ppsEnd = nextStart;
+      }
+    }
+
+    if (spsStart != null &&
+        spsEnd != null &&
+        ppsStart != null &&
+        ppsEnd != null) {
+      final sps = payload.sublist(spsStart, spsEnd);
+      final pps = payload.sublist(ppsStart, ppsEnd);
+      final config = Uint8List(sps.length + pps.length);
+      config.setRange(0, sps.length, sps);
+      config.setRange(sps.length, config.length, pps);
+      return config;
+    }
+    return null;
   }
 
   void _listenToSocket(Socket socket) {
@@ -403,11 +526,27 @@ class DefaultConnectionService extends ChangeNotifier
         break;
 
       case Ss02PacketType.keyframe:
+        _cancelInitialKeyframeRecoveryTimer();
         if (!_state.hasCodecConfig) {
-          debugPrint('ConnectionService: Discarding keyframe: missing SPS/PPS.');
-          _droppedFramesCount++;
-          sendKeyframeRequest();
-          return;
+          final inlineConfig = _extractInlineSpsPps(packet.payload);
+          if (inlineConfig != null) {
+            debugPrint(
+              'ConnectionService: Recovered inline SPS/PPS from keyframe (${inlineConfig.length} bytes)',
+            );
+            decoderBridge?.feedConfigPacket(inlineConfig);
+            _updateState(
+              _state.copyWith(
+                activeProtocol: StreamingProtocol.ss02H264,
+                hasCodecConfig: true,
+                configPacketsReceived: _state.configPacketsReceived + 1,
+              ),
+            );
+          } else {
+            debugPrint('ConnectionService: Discarding keyframe: missing SPS/PPS.');
+            _droppedFramesCount++;
+            sendKeyframeRequest();
+            return;
+          }
         }
 
         decoderBridge?.feedAccessUnit(
@@ -721,6 +860,8 @@ class DefaultConnectionService extends ChangeNotifier
   @override
   void cancelConnection() {
     _isCancelled = true;
+    _isReconnecting = false;
+    _cancelInitialKeyframeRecoveryTimer();
     if (_state.status == ConnectionStatus.connecting) {
       _updateState(
         const ConnectionStateModel(
@@ -785,6 +926,7 @@ class DefaultConnectionService extends ChangeNotifier
           target.address,
           target.port,
           pcName: target.name,
+          isUsb: _lastConnectWasUsb,
         );
 
         if (success) {
@@ -808,6 +950,7 @@ class DefaultConnectionService extends ChangeNotifier
   Future<void> disconnect({String? reason}) async {
     _isClosing = true;
     _isReconnecting = false;
+    _cancelInitialKeyframeRecoveryTimer();
     await _closeSocket();
     if (!_isDisposed) {
       await decoderBridge?.resetDecoder();

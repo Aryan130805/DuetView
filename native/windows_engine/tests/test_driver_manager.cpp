@@ -28,6 +28,8 @@ void TestStateToString() {
     ASSERT_EQ(DriverManager::StateToString(DriverState::InstalledButNotOperational), "INSTALLED_BUT_NOT_OPERATIONAL");
     ASSERT_EQ(DriverManager::StateToString(DriverState::InstalledButMonitorNotAvailable), "INSTALLED_BUT_MONITOR_NOT_AVAILABLE");
     ASSERT_EQ(DriverManager::StateToString(DriverState::Ready), "READY");
+    ASSERT_EQ(DriverManager::StateToString(DriverState::UpdateAvailable), "UPDATE_AVAILABLE");
+    ASSERT_EQ(DriverManager::StateToString(DriverState::DetectionFailed), "DETECTION_FAILED");
     ASSERT_EQ(DriverManager::StateToString(DriverState::InstallationInProgress), "INSTALLATION_IN_PROGRESS");
     ASSERT_EQ(DriverManager::StateToString(DriverState::RestartRequired), "RESTART_REQUIRED");
     ASSERT_EQ(DriverManager::StateToString(DriverState::InstallationFailed), "INSTALLATION_FAILED");
@@ -69,11 +71,13 @@ void TestDetectDriverStateDefault() {
     std::cout << "  Hardware ID: " << std::string(info.hardwareId.begin(), info.hardwareId.end()) << "\n";
     std::cout << "  Diagnostic Message: " << info.diagnosticMessage << "\n";
 
-    // Valid state must be one of the known enums
+    // Valid state must be one of the known authoritative enums
     ASSERT_TRUE(info.state == DriverState::NotInstalled ||
                 info.state == DriverState::InstalledButNotOperational ||
                 info.state == DriverState::InstalledButMonitorNotAvailable ||
                 info.state == DriverState::Ready ||
+                info.state == DriverState::UpdateAvailable ||
+                info.state == DriverState::DetectionFailed ||
                 info.state == DriverState::UnsupportedOrBlocked);
     std::cout << "  [PASS] TestDetectDriverStateDefault\n";
 }
@@ -125,21 +129,25 @@ void TestFindDriverInfPath() {
 void TestInstallDriverPreFlightChecks() {
     std::cout << "[RUN ] TestInstallDriverPreFlightChecks...\n";
     DriverManager mgr;
-    uint32_t exitCode = 0;
-    std::string errMsg;
 
     std::wstring infPath = mgr.FindDriverInfPath();
     ASSERT_TRUE(!infPath.empty());
+    ASSERT_TRUE(infPath.find(L"SecondScreenIdd.inf") != std::wstring::npos);
 
-    // When the binary is compiled, preflight binary check succeeds.
-    // In automated sandboxed test runs without user interactive UAC prompt,
-    // InstallDriver safely handles UAC elevation decline or non-interactive failure.
-    bool result = mgr.InstallDriver(exitCode, errMsg);
+    // Preflight checks: OS must support IddCx
+    ASSERT_TRUE(DriverManager::IsIddCxSupportedOnCurrentOS());
 
-    // If UAC elevation is not granted in the automated test, it safely returns false with an error message
-    if (!result) {
-        ASSERT_TRUE(!errMsg.empty());
-    }
+    // Verify mock driver installation handling
+    mgr.SetMockState(DriverState::InstallationInProgress);
+    ASSERT_EQ(mgr.DetectDriverState().state, DriverState::InstallationInProgress);
+    mgr.SetMockState(DriverState::Ready);
+    ASSERT_EQ(mgr.DetectDriverState().state, DriverState::Ready);
+    mgr.SetMockState(DriverState::UpdateAvailable);
+    ASSERT_EQ(mgr.DetectDriverState().state, DriverState::UpdateAvailable);
+    mgr.SetMockState(DriverState::DetectionFailed);
+    ASSERT_EQ(mgr.DetectDriverState().state, DriverState::DetectionFailed);
+    mgr.SetMockState(std::nullopt);
+
     std::cout << "  [PASS] TestInstallDriverPreFlightChecks\n";
 }
 

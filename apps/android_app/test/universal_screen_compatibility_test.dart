@@ -102,6 +102,7 @@ class MockConnectionService extends ChangeNotifier implements ConnectionService 
     String address,
     int port, {
     String? pcName,
+    bool isUsb = false,
   }) async => true;
 
   @override

@@ -79,6 +79,20 @@ HostState ProcessManager::GetState() const {
     return state_.load();
 }
 
+secondscreen::engine::ClientStatus ProcessManager::GetClientStatus() const {
+    if (engineRunner_ && engineRunner_->IsRunning()) {
+        return engineRunner_->GetClientStatus();
+    }
+    return secondscreen::engine::ClientStatus::WaitingForClient;
+}
+
+std::string ProcessManager::GetClientIp() const {
+    if (engineRunner_ && engineRunner_->IsRunning()) {
+        return engineRunner_->GetClientIp();
+    }
+    return "";
+}
+
 std::string ProcessManager::GetLastError() const {
     std::lock_guard<std::mutex> lock(mutex_);
     return lastError_;

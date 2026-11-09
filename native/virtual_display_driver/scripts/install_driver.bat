@@ -10,7 +10,7 @@ net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Administrative privileges required.
     echo Please right-click this script and select 'Run as administrator'.
-    pause
+    if not "%~1"=="--silent" if not "%~1"=="/silent" pause
     exit /b 1
 )
 
@@ -32,7 +32,7 @@ if exist "%DRIVER_DIR%\SecondScreenIdd.inf" goto FoundInf
 
 echo [ERROR] SecondScreenIdd.inf could not be found.
 echo Searched in: %~dp0
-pause
+if not "%~1"=="--silent" if not "%~1"=="/silent" pause
 exit /b 1
 
 :FoundInf
@@ -40,7 +40,7 @@ cd /d "%DRIVER_DIR%"
 echo [1/3] Checking driver package in "%cd%"...
 if not exist "SecondScreenIdd.dll" (
     echo [ERROR] SecondScreenIdd.dll not found in "%cd%".
-    pause
+    if not "%~1"=="--silent" if not "%~1"=="/silent" pause
     exit /b 1
 )
 echo Found SecondScreenIdd.inf and SecondScreenIdd.dll
@@ -76,4 +76,7 @@ echo Installation routine completed.
 echo Open Windows Display Settings (ms-settings:display) or press
 echo Win + P and select 'Extend' to activate the virtual monitor.
 echo ========================================================
+if /i "%~1"=="--silent" exit /b 0
+if /i "%~1"=="/silent" exit /b 0
+if /i "%~1"=="-s" exit /b 0
 pause

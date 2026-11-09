@@ -14,10 +14,12 @@ namespace secondscreen::driver {
 
 /// Authoritative driver lifecycle states
 enum class DriverState {
-    NotInstalled,
-    InstalledButNotOperational,
-    InstalledButMonitorNotAvailable,
-    Ready,
+    NotInstalled,                    // State 1: Driver not installed
+    InstalledButNotOperational,      // State 3: Driver installed but device not ready / problem code
+    InstalledButMonitorNotAvailable, // State 2: Driver installed & operational, but monitor not extended
+    Ready,                           // State 2: Driver installed and functioning
+    UpdateAvailable,                 // State 4: Driver update available
+    DetectionFailed,                 // State 5: Detection failed / query error
     InstallationInProgress,
     RestartRequired,
     InstallationFailed,
@@ -29,7 +31,8 @@ struct DriverInfo {
     DriverState state{DriverState::NotInstalled};
     std::wstring hardwareId{L"Root\\SecondScreenIdd"};
     std::wstring deviceDesc{};
-    std::wstring driverVersion{};
+    std::wstring installedVersion{};
+    std::wstring bundledVersion{};
     uint32_t devNodeStatus{0};
     uint32_t problemCode{0};
     std::string diagnosticMessage{};

@@ -74,6 +74,7 @@ class LifecycleMockConnectionService extends ChangeNotifier
     String address,
     int port, {
     String? pcName,
+    bool isUsb = false,
   }) async {
     mockSocketConnected = true;
     _state = _state.copyWith(status: ConnectionStatus.streaming);
