@@ -17,7 +17,8 @@ Official pre-compiled binaries are published in the [GitHub Releases](https://gi
 
 | Platform | Package | Description | Release Asset Link |
 |---|---|---|---|
-| **Android** | `DuetView-Android.apk` | Companion display client for Android 8.0+ | [Download Android APK](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-Android.apk) |
+| **Android** | `DuetView-Android.apk` | Sideloadable standalone APK for Android 8.0+ | [Download Android APK](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-Android.apk) |
+| **Android** | `DuetView-Android.aab` | Google Play Store production App Bundle | [Download Play Store AAB](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-Android.aab) |
 | **Windows PC** | `DuetView-PC-Setup.exe` | Standalone installer for Windows 10/11 (64-bit) | [Download Windows Installer](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-Setup.exe) |
 | **Windows PC** | `DuetView-PC-0.4.0-win64.zip` | Portable standalone package (no installation required) | [Download Portable ZIP](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-0.4.0-win64.zip) |
 

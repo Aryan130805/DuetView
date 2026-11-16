@@ -1,0 +1,14 @@
+# ===========================================================================
+# DuetView Android Release Signing Configuration (Template)
+# ===========================================================================
+# Copy this file to 'key.properties' in the same directory (android/key.properties).
+# DO NOT commit 'key.properties' or your keystore file (.jks/.keystore) to git!
+#
+# To generate a new production keystore, run the following in terminal:
+# keytool -genkey -v -keystore duetview-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias duetview
+#
+# Fill in your values below:
+storePassword=your_keystore_password
+keyPassword=your_key_password
+keyAlias=duetview
+storeFile=duetview-release.jks
