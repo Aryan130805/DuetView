@@ -3,22 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy Policy - DuetView</title>
-  <meta name="description" content="Privacy Policy for DuetView - 100% peer-to-peer, zero cloud data collection second monitor app for Android and Windows.">
-  <link rel="icon" type="image/png" href="duetview_icon.png">
+  <title>Privacy Policy — DuetView</title>
+  <meta name="description" content="Official Privacy Policy for DuetView. 100% peer-to-peer, zero-cloud data collection companion display application for Android and Windows.">
   <style>
     :root {
-      --bg: #090d16;
+      --bg: #0b0f19;
       --card-bg: #111827;
-      --card-border: #1e293b;
-      --card-hover-border: #38bdf8;
-      --primary: #38bdf8;
-      --primary-gradient: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
-      --accent: #818cf8;
+      --card-border: #1f293d;
       --text: #f1f5f9;
       --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #38bdf8;
+      --primary-dim: rgba(56, 189, 248, 0.12);
+      --primary-border: rgba(56, 189, 248, 0.3);
+      --accent: #818cf8;
       --success: #10b981;
+      --success-dim: rgba(16, 185, 129, 0.12);
       --code-bg: #0f172a;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --card-border: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #475569;
+        --text-dim: #64748b;
+        --primary: #0284c7;
+        --primary-dim: rgba(2, 132, 199, 0.08);
+        --primary-border: rgba(2, 132, 199, 0.25);
+        --accent: #6366f1;
+        --success: #059669;
+        --success-dim: rgba(5, 150, 105, 0.08);
+        --code-bg: #f1f5f9;
+      }
     }
 
     * {
@@ -28,166 +48,142 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: var(--font-family);
       background-color: var(--bg);
       color: var(--text);
-      line-height: 1.65;
+      line-height: 1.7;
       padding: 0;
       margin: 0;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Top navigation bar */
-    .navbar {
-      background: rgba(17, 24, 39, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--card-border);
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      padding: 16px 24px;
+    .wrapper {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 48px 24px 80px 24px;
     }
 
-    .navbar-container {
-      max-width: 900px;
-      margin: 0 auto;
+    /* Header */
+    header {
+      margin-bottom: 40px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .brand-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       text-decoration: none;
       color: var(--text);
-      font-weight: 700;
-      font-size: 1.25rem;
     }
 
-    .brand img {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      object-fit: cover;
-    }
-
-    .nav-links a {
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-
-    .nav-links a:hover {
-      color: var(--primary);
-    }
-
-    /* Container */
-    .container {
-      max-width: 900px;
-      margin: 40px auto 80px auto;
-      padding: 0 24px;
-    }
-
-    /* Hero Banner */
-    .hero {
-      text-align: center;
-      padding: 40px 0 32px 0;
-      border-bottom: 1px solid var(--card-border);
-      margin-bottom: 36px;
-    }
-
-    .badge {
-      display: inline-flex;
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #2563eb, #0284c7);
+      display: flex;
       align-items: center;
-      gap: 6px;
-      background: rgba(56, 189, 248, 0.12);
-      color: var(--primary);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      padding: 6px 14px;
-      border-radius: 9999px;
-      font-size: 0.825rem;
-      font-weight: 600;
-      margin-bottom: 16px;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+      flex-shrink: 0;
     }
 
-    .hero h1 {
-      font-size: 2.5rem;
+    .brand-text h1 {
+      font-size: 1.5rem;
       font-weight: 800;
-      background: var(--primary-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 12px;
       letter-spacing: -0.02em;
+      line-height: 1.2;
     }
 
-    .hero p {
-      color: var(--text-muted);
-      font-size: 1.05rem;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-
-    .meta-info {
-      margin-top: 16px;
+    .brand-text span {
       font-size: 0.85rem;
       color: var(--text-muted);
     }
 
-    /* Quick Highlight Grid */
-    .highlights {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+    .github-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .github-link:hover {
+      border-color: var(--primary);
+    }
+
+    .doc-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .doc-meta {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+    }
+
+    /* Summary Callout Banner */
+    .summary-banner {
+      background: var(--primary-dim);
+      border: 1px solid var(--primary-border);
+      border-radius: 12px;
+      padding: 20px 24px;
       margin-bottom: 40px;
     }
 
-    .highlight-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 20px;
-      transition: transform 0.2s, border-color 0.2s;
-    }
-
-    .highlight-card:hover {
-      border-color: var(--card-hover-border);
-      transform: translateY(-2px);
-    }
-
-    .highlight-icon {
-      font-size: 1.5rem;
-      margin-bottom: 8px;
-      display: block;
-    }
-
-    .highlight-title {
+    .summary-banner h3 {
+      color: var(--primary);
+      font-size: 1.05rem;
       font-weight: 700;
-      font-size: 0.95rem;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .summary-banner p {
       color: var(--text);
-      margin-bottom: 4px;
+      font-size: 0.95rem;
+      margin: 0;
     }
 
-    .highlight-desc {
-      font-size: 0.825rem;
-      color: var(--text-muted);
-      line-height: 1.4;
+    /* Content Sections */
+    article.content {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
     }
 
-    /* Policy Content */
-    .section {
+    section {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 14px;
       padding: 28px;
-      margin-bottom: 24px;
     }
 
-    .section h2 {
-      font-size: 1.35rem;
+    section h2 {
+      font-size: 1.3rem;
       font-weight: 700;
       color: var(--text);
       margin-bottom: 14px;
@@ -196,65 +192,67 @@
       gap: 10px;
     }
 
-    .section h2 span.num {
-      background: rgba(56, 189, 248, 0.15);
+    section h2 .badge-num {
+      background: var(--primary-dim);
       color: var(--primary);
-      font-size: 0.9rem;
+      font-size: 0.8rem;
+      font-weight: 700;
       padding: 2px 8px;
       border-radius: 6px;
     }
 
-    .section p {
+    section p {
       color: var(--text-muted);
       margin-bottom: 14px;
-      font-size: 0.95rem;
+      font-size: 0.975rem;
     }
 
-    .section p:last-child {
+    section p:last-child {
       margin-bottom: 0;
     }
 
-    .section ul {
+    section ul {
       margin: 12px 0 16px 20px;
       color: var(--text-muted);
+    }
+
+    section li {
+      margin-bottom: 8px;
       font-size: 0.95rem;
     }
 
-    .section li {
-      margin-bottom: 8px;
-    }
-
-    .section strong {
+    section strong {
       color: var(--text);
     }
 
-    /* Permission Callout Box */
-    .permission-box {
+    /* Permission Card */
+    .permission-item {
       background: var(--code-bg);
       border-left: 3px solid var(--primary);
       border-radius: 6px;
       padding: 14px 18px;
-      margin: 12px 0;
+      margin: 14px 0;
     }
 
-    .permission-title {
-      font-weight: 600;
-      color: var(--primary);
+    .permission-name {
+      font-weight: 700;
+      color: var(--text);
       font-size: 0.95rem;
       margin-bottom: 4px;
     }
 
     .permission-desc {
-      font-size: 0.875rem;
+      font-size: 0.9rem;
       color: var(--text-muted);
     }
 
     /* Footer */
     footer {
+      margin-top: 56px;
+      padding-top: 28px;
       border-top: 1px solid var(--card-border);
-      padding: 32px 24px;
       text-align: center;
-      color: var(--text-muted);
+      color: var(--text-dim);
       font-size: 0.85rem;
     }
 
@@ -267,198 +265,196 @@
       text-decoration: underline;
     }
 
-    @media (max-width: 640px) {
-      .hero h1 {
-        font-size: 2rem;
+    @media print {
+      body {
+        background: #ffffff;
+        color: #000000;
       }
-      .section {
-        padding: 20px;
+      .wrapper {
+        padding: 0;
+      }
+      section, .summary-banner {
+        border: 1px solid #ccc;
+        background: #ffffff;
+        page-break-inside: avoid;
+      }
+      .github-link {
+        display: none;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Navigation -->
-  <header class="navbar">
-    <div class="navbar-container">
-      <a href="https://github.com/Aryan130805/DuetView" class="brand">
-        <img src="duetview_icon.png" alt="DuetView Logo">
-        <span>DuetView</span>
-      </a>
-      <div class="nav-links">
-        <a href="https://github.com/Aryan130805/DuetView" target="_blank" rel="noopener">GitHub Repository ↗</a>
+  <div class="wrapper">
+
+    <!-- Top Header -->
+    <header>
+      <div class="brand-row">
+        <div class="brand">
+          <!-- Inline Self-Contained SVG Logo -->
+          <div class="brand-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="3" width="14" height="10" rx="2" stroke="white" stroke-width="1.8"/>
+              <path d="M5 16H13" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+              <rect x="12" y="9" width="10" height="12" rx="2" fill="#090d16" stroke="#38bdf8" stroke-width="1.8"/>
+              <circle cx="17" cy="18" r="1" fill="#38bdf8"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h1>DuetView</h1>
+            <span>Second Screen &amp; Desktop Mirror</span>
+          </div>
+        </div>
+
+        <a href="https://github.com/Aryan130805/DuetView" target="_blank" rel="noopener" class="github-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          View on GitHub
+        </a>
       </div>
+
+      <div class="doc-title">Privacy Policy</div>
+      <div class="doc-meta">
+        <strong>Effective Date:</strong> November 16, 2026 &bull; <strong>Application:</strong> DuetView (Android &amp; Windows)
+      </div>
+    </header>
+
+    <!-- Quick Summary Banner -->
+    <div class="summary-banner">
+      <h3>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Core Privacy Guarantee: Zero Cloud &bull; 100% Peer-to-Peer
+      </h3>
+      <p>
+        DuetView operates strictly across your private local Wi-Fi network or direct USB cable. <strong>We do not operate cloud servers, and we collect zero personal data, analytics, or screen content.</strong> Everything stays on your devices.
+      </p>
     </div>
-  </header>
 
-  <!-- Main Content Container -->
-  <main class="container">
+    <!-- Main Content Sections -->
+    <article class="content">
 
-    <!-- Hero Title -->
-    <section class="hero">
-      <div class="badge">
-        <span>●</span> Official Privacy Policy
-      </div>
-      <h1>DuetView Privacy Policy</h1>
-      <p>Your privacy is absolute. DuetView is engineered with a strict zero-cloud, 100% peer-to-peer architecture.</p>
-      <div class="meta-info">
-        <strong>Effective Date:</strong> November 16, 2026 &bull; <strong>Version:</strong> 0.4.0
-      </div>
-    </section>
+      <section>
+        <h2><span class="badge-num">1</span> Overview &amp; Architecture</h2>
+        <p>
+          DuetView is developed by Aryan (<a href="https://github.com/Aryan130805" target="_blank" rel="noopener" style="color: var(--primary);">@Aryan130805</a>) as an open-source productivity app that converts your Android device into an extended monitor or mirror for your Windows PC.
+        </p>
+        <p>
+          Unlike conventional remote desktop applications that route video streams through third-party cloud infrastructure, DuetView is engineered as a <strong>direct peer-to-peer (P2P) local network protocol</strong>. Video encoding on Windows and hardware decoding on Android communicate directly over your home/office LAN or USB cable.
+        </p>
+      </section>
 
-    <!-- Key Privacy Highlights -->
-    <section class="highlights">
-      <div class="highlight-card">
-        <span class="highlight-icon">🔒</span>
-        <div class="highlight-title">Zero Cloud Servers</div>
-        <div class="highlight-desc">All screen streaming and control inputs stay strictly on your local Wi-Fi or USB tether.</div>
-      </div>
-      <div class="highlight-card">
-        <span class="highlight-icon">🚫</span>
-        <div class="highlight-title">No Data Collection</div>
-        <div class="highlight-desc">We collect zero personal identifiable information, telemetry, or user analytics.</div>
-      </div>
-      <div class="highlight-card">
-        <span class="highlight-icon">📷</span>
-        <div class="highlight-title">On-Device QR Pairing</div>
-        <div class="highlight-desc">Camera access is used strictly to read the local pairing code. Frames are never stored or uploaded.</div>
-      </div>
-      <div class="highlight-card">
-        <span class="highlight-icon">⚡</span>
-        <div class="highlight-title">No Ads or Trackers</div>
-        <div class="highlight-desc">Zero third-party advertising SDKs, tracking pixels, or monetized data brokers.</div>
-      </div>
-    </section>
+      <section>
+        <h2><span class="badge-num">2</span> Information We Collect</h2>
+        <p>
+          <strong>DuetView collects zero personal data.</strong> Specifically:
+        </p>
+        <ul>
+          <li><strong>No Personal Identifiable Information (PII):</strong> No names, email addresses, phone numbers, or account credentials.</li>
+          <li><strong>No Device Identifiers:</strong> No IMEI, MAC addresses, Android IDs, or advertising identifiers (GAID).</li>
+          <li><strong>No Screen Content Recording:</strong> Screen frames generated by your Windows PC are decoded directly to the Android hardware <code>SurfaceView</code> in memory and are never saved or uploaded.</li>
+          <li><strong>No Telemetry or Usage Tracking:</strong> Zero analytics SDKs, session loggers, or crash-reporting trackers.</li>
+        </ul>
+      </section>
 
-    <!-- Detailed Policy Sections -->
-    <article class="section">
-      <h2><span class="num">01</span> Introduction & Philosophy</h2>
-      <p>
-        DuetView is developed by Aryan (<a href="https://github.com/Aryan130805" target="_blank" rel="noopener" style="color: var(--primary);">@Aryan130805</a>) as an open-source, high-performance companion display system that turns your Android phone or tablet into an extended monitor or mirror for your Windows 10/11 computer.
-      </p>
-      <p>
-        We believe that desktop screen mirroring and display extension should never compromise user privacy. This document outlines how our Android application and Windows host software handle device permissions and network communication.
-      </p>
-    </article>
+      <section>
+        <h2><span class="badge-num">3</span> Device Permissions Explained</h2>
+        <p>
+          DuetView requests only the minimum necessary permissions required for local operation:
+        </p>
 
-    <article class="section">
-      <h2><span class="num">02</span> Zero Cloud & Peer-to-Peer Architecture</h2>
-      <p>
-        DuetView operates entirely as a <strong>peer-to-peer (P2P)</strong> system:
-      </p>
-      <ul>
-        <li><strong>Direct Connection:</strong> Your Android client establishes a direct TCP socket connection (port 52025) and UDP discovery channel (port 52026) directly to your Windows host machine.</li>
-        <li><strong>No Intermediary Relays:</strong> Video frames, touch gestures, and keyboard inputs flow directly between your phone and computer over your private Wi-Fi network or USB cable.</li>
-        <li><strong>No Cloud Servers:</strong> We do not operate, rent, or maintain any relay servers, database clusters, or external proxy services. None of your screen content ever traverses the internet.</li>
-      </ul>
-    </article>
-
-    <article class="section">
-      <h2><span class="num">03</span> Information We Collect</h2>
-      <p>
-        <strong>We collect NO personal data.</strong>
-      </p>
-      <ul>
-        <li><strong>No Account Required:</strong> You can use all features of DuetView without registering, logging in, or providing an email address.</li>
-        <li><strong>No Device Profiling:</strong> We do not collect device serial numbers, IMEI, advertising IDs (GAID), or hardware fingerprints.</li>
-        <li><strong>No Usage Tracking:</strong> We do not track session durations, opened screens, or user interactions.</li>
-      </ul>
-    </article>
-
-    <article class="section">
-      <h2><span class="num">04</span> Device Permissions & How They Are Used</h2>
-      <p>
-        DuetView requests only the minimum required Android permissions, strictly utilized for local operational purposes:
-      </p>
-
-      <div class="permission-box">
-        <div class="permission-title">📷 Camera (android.permission.CAMERA)</div>
-        <div class="permission-desc">
-          <strong>Purpose:</strong> Used exclusively to scan the pairing QR code displayed on your Windows PC monitor.<br>
-          <strong>Data Handling:</strong> Camera frames are processed strictly in real-time on your device using on-device ML/ZXing barcode recognition. Camera frames are <strong>never saved, recorded, or transmitted</strong>. Camera access terminates the instant the QR code is decoded. Manual IP entry is available if you prefer not to grant camera access.
+        <div class="permission-item">
+          <div class="permission-name">📷 Camera (android.permission.CAMERA)</div>
+          <div class="permission-desc">
+            <strong>Usage:</strong> Used strictly to scan the pairing QR code displayed by the DuetView Windows PC host.<br>
+            <strong>Data Handling:</strong> Camera frames are processed purely in real-time on your device using on-device barcode scanning. Images are <strong>never stored, recorded, or transmitted</strong>. You can bypass camera permission entirely by manually entering your PC's IP address.
+          </div>
         </div>
-      </div>
 
-      <div class="permission-box">
-        <div class="permission-title">🌐 Local Network & Wi-Fi State (INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE)</div>
-        <div class="permission-desc">
-          <strong>Purpose:</strong> Required to enumerate local network interfaces, bind local TCP sockets, and stream display frames between your Android device and Windows PC across local Wi-Fi or USB tethering.
+        <div class="permission-item">
+          <div class="permission-name">🌐 Local Network (INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE)</div>
+          <div class="permission-desc">
+            <strong>Usage:</strong> Required to enumerate your local network interface (Wi-Fi or USB tethering) and open a direct local TCP socket (port 52025) to stream video and input controls between your PC and phone.
+          </div>
         </div>
-      </div>
 
-      <div class="permission-box">
-        <div class="permission-title">📡 Wi-Fi Multicast (CHANGE_WIFI_MULTICAST_STATE)</div>
-        <div class="permission-desc">
-          <strong>Purpose:</strong> Allows the Android application to listen for UDP discovery beacons broadcast by your Windows host on your local network so your PC appears automatically in the available devices list.
+        <div class="permission-item">
+          <div class="permission-name">📡 Wi-Fi Multicast (CHANGE_WIFI_MULTICAST_STATE)</div>
+          <div class="permission-desc">
+            <strong>Usage:</strong> Allows the Android client to receive UDP discovery beacons broadcast by your Windows PC on your local subnet (port 52026) so your computer is automatically discovered.
+          </div>
         </div>
-      </div>
+      </section>
+
+      <section>
+        <h2><span class="badge-num">4</span> Local On-Device Storage</h2>
+        <p>
+          DuetView saves only basic, non-sensitive preferences locally on your phone using standard Android private storage (<code>SharedPreferences</code>):
+        </p>
+        <ul>
+          <li><strong>Saved PC Profiles:</strong> Hostnames, local IP addresses, and pairing public keys of previously connected PCs for convenient one-tap reconnection.</li>
+          <li><strong>Display Preferences:</strong> Your preferred resolution mode, target refresh rate (60/90/120 FPS), and scaling preference.</li>
+        </ul>
+        <p>
+          This data never leaves your device and is wiped immediately if you clear app storage or uninstall the application.
+        </p>
+      </section>
+
+      <section>
+        <h2><span class="badge-num">5</span> Third-Party Services &amp; Advertising</h2>
+        <p>
+          DuetView contains:
+        </p>
+        <ul>
+          <li><strong>Zero Advertisements:</strong> No Google AdMob, Unity Ads, or programmatic advertising SDKs.</li>
+          <li><strong>Zero Analytics:</strong> No Firebase, Google Analytics, Mixpanel, or Facebook SDK.</li>
+          <li><strong>Zero Third-Party Data Sharing:</strong> We do not share, sell, or rent any data to any third party.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2><span class="badge-num">6</span> Children's Privacy (COPPA &amp; Families Policy)</h2>
+        <p>
+          DuetView does not target or collect data from children under the age of 13. Because our software does not collect any personal data whatsoever, DuetView is safe for all audiences and complies with the Children's Online Privacy Protection Act (COPPA) and Google Play Families Policy.
+        </p>
+      </section>
+
+      <section>
+        <h2><span class="badge-num">7</span> Open Source Verification</h2>
+        <p>
+          DuetView is free and open-source software licensed under the MIT License. Anyone can independently inspect, review, and compile our entire codebase to verify these privacy practices:
+        </p>
+        <p>
+          👉 <strong>Source Repository:</strong> <a href="https://github.com/Aryan130805/DuetView" target="_blank" rel="noopener" style="color: var(--primary); font-weight: 600;">https://github.com/Aryan130805/DuetView</a>
+        </p>
+      </section>
+
+      <section>
+        <h2><span class="badge-num">8</span> Contact &amp; Support</h2>
+        <p>
+          If you have questions, inquiries, or feedback regarding this Privacy Policy, please open an issue in our official GitHub repository:
+        </p>
+        <p>
+          📧 <strong>GitHub Issues:</strong> <a href="https://github.com/Aryan130805/DuetView/issues" target="_blank" rel="noopener" style="color: var(--primary);">https://github.com/Aryan130805/DuetView/issues</a>
+        </p>
+      </section>
+
     </article>
 
-    <article class="section">
-      <h2><span class="num">05</span> Local Data Storage</h2>
-      <p>
-        DuetView stores only minimal, non-sensitive preferences directly on your device via standard private Android <code>SharedPreferences</code>:
+    <!-- Footer -->
+    <footer>
+      <p>&copy; 2026 DuetView. Open source under the MIT License.</p>
+      <p style="margin-top: 6px;">
+        <a href="https://github.com/Aryan130805/DuetView">GitHub Repository</a> &bull;
+        <a href="https://github.com/Aryan130805/DuetView/releases">Releases</a> &bull;
+        <a href="https://github.com/Aryan130805/DuetView/issues">Support</a>
       </p>
-      <ul>
-        <li><strong>Saved PC Profiles:</strong> Names, local IP addresses, and pairing public keys of previously paired computers so you can reconnect with one tap.</li>
-        <li><strong>Display Preferences:</strong> Your selected resolution, target refresh rate (60/90/120 FPS), and display scaling preferences.</li>
-      </ul>
-      <p>
-        This information is private to the application sandbox and is permanently erased when you clear app data or uninstall DuetView.
-      </p>
-    </article>
+    </footer>
 
-    <article class="section">
-      <h2><span class="num">06</span> Third-Party Services & Advertising</h2>
-      <p>
-        DuetView contains:
-      </p>
-      <ul>
-        <li><strong>Zero Advertising Networks:</strong> No Google AdMob, Unity Ads, or programmatic advertising SDKs.</li>
-        <li><strong>Zero Analytics Platforms:</strong> No Google Analytics, Firebase Analytics, Mixpanel, or Facebook SDK.</li>
-        <li><strong>Zero Data Brokers:</strong> No selling, renting, or monetization of user data whatsoever.</li>
-      </ul>
-    </article>
-
-    <article class="section">
-      <h2><span class="num">07</span> Children's Privacy</h2>
-      <p>
-        DuetView does not address anyone under the age of 13 and complies fully with COPPA (Children's Online Privacy Protection Act) and Google Play Families Policy. Because we collect zero personal data, children can safely use DuetView as a secondary display without privacy risk.
-      </p>
-    </article>
-
-    <article class="section">
-      <h2><span class="num">08</span> Open Source Transparency</h2>
-      <p>
-        DuetView is fully open-source. Anyone can inspect, audit, or compile the source code directly from our official repository to verify that our applications strictly follow this Privacy Policy:
-      </p>
-      <p>
-        👉 <a href="https://github.com/Aryan130805/DuetView" target="_blank" rel="noopener" style="color: var(--primary); font-weight: 600;">github.com/Aryan130805/DuetView</a>
-      </p>
-    </article>
-
-    <article class="section">
-      <h2><span class="num">09</span> Contact & Inquiries</h2>
-      <p>
-        If you have questions, concerns, or feedback regarding this Privacy Policy or DuetView's data practices, please open an issue on GitHub:
-      </p>
-      <p>
-        📧 <strong>GitHub Issues:</strong> <a href="https://github.com/Aryan130805/DuetView/issues" target="_blank" rel="noopener" style="color: var(--primary);">https://github.com/Aryan130805/DuetView/issues</a>
-      </p>
-    </article>
-
-  </main>
-
-  <!-- Footer -->
-  <footer>
-    <p>&copy; 2026 DuetView. Open source under the MIT License.</p>
-    <p style="margin-top: 6px;">
-      <a href="https://github.com/Aryan130805/DuetView">GitHub Repository</a> &bull;
-      <a href="https://github.com/Aryan130805/DuetView/releases">Releases</a> &bull;
-      <a href="https://github.com/Aryan130805/DuetView/issues">Support</a>
-    </p>
-  </footer>
+  </div>
 
 </body>
 </html>

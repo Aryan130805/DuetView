@@ -68,7 +68,7 @@ Connect seamlessly over high-speed local Wi-Fi or plug in via USB tethering for 
 ### 3.1 Privacy Policy URL
 Set to your live GitHub Pages privacy policy URL:
 ```
-https://aryan130805.github.io/DuetView/privacy.html
+https://aryan130805.github.io/DuetView/
 ```
 *(Or direct repository link: `https://github.com/Aryan130805/DuetView/blob/master/PRIVACY_POLICY.md`)*
 
