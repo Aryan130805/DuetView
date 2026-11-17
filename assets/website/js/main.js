@@ -137,11 +137,11 @@ function initScrollEffects() {
 
     // Navbar shadow elevation
     if (navbar) {
-      if (scrollY > 40) {
-        navbar.style.borderBottomColor = "rgba(56, 189, 248, 0.25)";
-        navbar.style.boxShadow = "0 8px 24px rgba(0, 0, 0, 0.5)";
+      if (scrollY > 20) {
+        navbar.style.borderBottomColor = "#cbd5e1";
+        navbar.style.boxShadow = "0 4px 20px rgba(0, 0, 0, 0.06)";
       } else {
-        navbar.style.borderBottomColor = "var(--border-subtle)";
+        navbar.style.borderBottomColor = "var(--border-light)";
         navbar.style.boxShadow = "none";
       }
     }
