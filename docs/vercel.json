@@ -6,8 +6,7 @@
     { "source": "/privacy-policy", "destination": "/privacy.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/terms-and-conditions", "destination": "/terms.html" },
-    { "source": "/terms", "destination": "/terms.html" },
-    { "source": "/download", "destination": "/index.html#download" }
+    { "source": "/terms", "destination": "/terms.html" }
   ],
   "headers": [
     {
