@@ -1,6 +1,6 @@
 /* ==========================================================================
    DuetView Official Website Stylesheet
-   Inspired by Campus Saathi • Modern Dark / Glassmorphic Tech Design
+   Modern Dark / Glassmorphic Tech Design
    ========================================================================== */
 
 :root {
@@ -162,7 +162,7 @@ img {
 }
 
 /* ==========================================================================
-   Navigation Bar (Campus Saathi style: Sticky, Glassmorphic, High-Polish)
+   Navigation Bar (Sticky, Glassmorphic, High-Polish)
    ========================================================================== */
 .navbar {
   position: sticky;
@@ -690,7 +690,7 @@ img {
 }
 
 /* ==========================================================================
-   Features Section (Campus Saathi style: 8 feature cards with tags)
+   Features Section (8 feature cards with tags)
    ========================================================================== */
 .features-section {
   padding: 100px 0;
@@ -1150,7 +1150,7 @@ img {
 }
 
 /* ==========================================================================
-   FAQ Section (Campus Saathi style: Accordion with smooth toggle)
+   FAQ Section (Accordion with smooth toggle)
    ========================================================================== */
 .faq-section {
   padding: 100px 0;

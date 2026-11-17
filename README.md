@@ -4,10 +4,31 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Android-blue.svg)](https://github.com/Aryan130805/DuetView)
 [![Release](https://img.shields.io/badge/Release-v0.4.0%20(Beta)-emerald.svg)](https://github.com/Aryan130805/DuetView/releases)
+[![Official Website](https://img.shields.io/badge/Website-DuetView%20Official-blue.svg)](https://aryan130805.github.io/DuetView/)
+[![Privacy Policy](https://img.shields.io/badge/Privacy-100%25%20P2P%20%7C%20Zero%20Cloud-green.svg)](privacy.html)
 [![Build & Tests](https://img.shields.io/badge/Tests-81%20Android%20%7C%204%20C%2B%2B%20Passing-brightgreen.svg)](https://github.com/Aryan130805/DuetView/actions)
 [![Language](https://img.shields.io/badge/Languages-Dart%20%7C%20C%2B%2B20%20%7C%20Kotlin-purple.svg)](https://github.com/Aryan130805/DuetView)
 
 DuetView is a free, high-performance display streaming and companion screen solution that connects your Windows PC to an Android phone or tablet over local Wi-Fi or USB tethering.
+
+---
+
+## 🌐 Official Website & Web Pages
+
+- **Live Official Website:** [https://aryan130805.github.io/DuetView/](https://aryan130805.github.io/DuetView/)
+- **Privacy Policy:** [`privacy.html`](privacy.html) &bull; [Online View](https://aryan130805.github.io/DuetView/privacy.html)
+- **Terms & Conditions:** [`terms.html`](terms.html) &bull; [Online View](https://aryan130805.github.io/DuetView/terms.html)
+
+### Local Preview
+To preview and host the official website locally:
+```bash
+python -m http.server 8000
+```
+Then navigate to [http://localhost:8000](http://localhost:8000) in your browser.
+
+### Hosting & Deployment
+- **Netlify:** Root-level [`netlify.toml`](netlify.toml) and [`_redirects`](_redirects) provide automatic security headers and clean URL rewrites (`/privacy-policy` &rarr; `/privacy.html`, `/terms` &rarr; `/terms.html`). Set publish directory to `.`.
+- **GitHub Pages:** Pre-synchronized mirror maintained in [`docs/`](docs/). In GitHub repository **Settings > Pages**, select branch `master` (or `main`) and directory `/docs`.
 
 ---
 
@@ -28,9 +49,9 @@ Official pre-compiled binaries are published in the [GitHub Releases](https://gi
 ### Release Asset SHA-256 Checksums (v0.4.0)
 
 ```
-2997310d46203a6d3ade2a2acc092e6c5f3837f94aefeef39c36c6dd10c7f09f  DuetView-Android.apk
-fd0fc67d4bdbdefa39a216a8e9a60c044b8abeae1421345f8f8249e3bdaa8482  DuetView-PC-Setup.exe
-e43845c30e0f14809fdabf805e863b0488a422c1f8ba7218454ec7522b4be9a2  DuetView-PC-0.4.0-win64.zip
+05c5cf02642801b315080cbc8d0749f6a25fba2ee689f18d4064d62695c90b5a  DuetView-Android.apk
+0fe3d3561893dc3257014c56b393dbe5a5c18a3904aab025783b52f8c295a2c6  DuetView-PC-Setup.exe
+7e0b0589de23fc5349ec2c0dedc1f6207fb6f2c9bf76cdbdb9b19ab3b6072667  DuetView-PC-0.4.0-win64.zip
 ```
 
 ---
