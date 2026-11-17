@@ -1,0 +1,6 @@
+# DuetView Clean URL Redirects for Netlify
+/privacy-policy         /privacy.html          200
+/privacy                /privacy.html          200
+/terms-and-conditions   /terms.html            200
+/terms                  /terms.html            200
+/download               /#download             302

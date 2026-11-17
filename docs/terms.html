@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms &amp; Conditions — DuetView</title>
+  <meta name="description" content="Terms &amp; Conditions for DuetView - Open-source Android and Windows companion display application.">
+  <link rel="icon" type="image/png" href="assets/website/images/favicon.png">
+  <link rel="stylesheet" href="assets/website/css/style.css">
+  <style>
+    .legal-container {
+      max-width: 860px;
+      margin: 40px auto 80px auto;
+      padding: 0 24px;
+    }
+    .legal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      margin-bottom: 32px;
+    }
+    .legal-card h2 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .legal-card h2 .num-badge {
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--cyan-primary);
+      font-size: 0.85rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .legal-card p {
+      color: var(--text-secondary);
+      font-size: 0.975rem;
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+    .legal-card p:last-child {
+      margin-bottom: 0;
+    }
+    .legal-card ul {
+      margin: 12px 0 16px 20px;
+      color: var(--text-secondary);
+    }
+    .legal-card li {
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+    .legal-card strong {
+      color: var(--text-main);
+    }
+    .callout-box {
+      background: rgba(14, 23, 42, 0.85);
+      border-left: 3px solid var(--cyan-primary);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-size: 0.925rem;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="container navbar-inner">
+      <a href="index.html" class="brand">
+        <div class="brand-icon-wrapper">
+          <img src="assets/website/images/duetview_icon.png" alt="DuetView Logo">
+        </div>
+        <span>DuetView</span>
+      </a>
+
+      <div class="nav-menu">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="index.html#features" class="nav-link">Features</a>
+        <a href="index.html#how-it-works" class="nav-link">How It Works</a>
+        <a href="index.html#download" class="nav-link">Download</a>
+        <a href="privacy.html" class="nav-link">Privacy Policy</a>
+        <a href="index.html#contact" class="nav-link">Contact</a>
+        <a href="index.html#download" class="nav-cta-btn">Download DuetView</a>
+      </div>
+
+      <button class="hamburger" aria-label="Toggle menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Legal Content -->
+  <main class="legal-container">
+    <div style="text-align: center; margin-bottom: 40px; padding-top: 20px;">
+      <div class="section-tag">Legal Terms</div>
+      <h1 class="section-title">Terms &amp; Conditions</h1>
+      <p class="section-desc">Please review these terms governing the use of DuetView software.</p>
+      <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 10px;">
+        <strong>Last Updated:</strong> November 17, 2026 &bull; <strong>License:</strong> MIT Open Source
+      </div>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num-badge">01</span> Acceptance of Terms</h2>
+      <p>
+        By downloading, installing, compiling, or running <strong>DuetView</strong> (including the Android application and the companion DuetView PC Windows host), you agree to be bound by these Terms &amp; Conditions.
+      </p>
+      <p>
+        DuetView is free and open-source software authored by Aryan (<a href="https://github.com/Aryan130805" target="_blank" rel="noopener" style="color: var(--cyan-primary);">@Aryan130805</a>) and licensed under the <strong>MIT License</strong>.
+      </p>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num-badge">02</span> Intended Use &amp; Functionality</h2>
+      <p>
+        DuetView is designed solely as a personal and professional companion display utility to:
+      </p>
+      <ul>
+        <li>Extend your Windows desktop workspace onto a compatible Android device.</li>
+        <li>Mirror your primary Windows display to your Android device with low latency.</li>
+        <li>Deliver touch, mouse, and keyboard input controls from the Android client to your Windows host.</li>
+      </ul>
+      <p>
+        DuetView operates strictly across your private local area network (LAN) or direct USB tethering. It does not route, proxy, or relay display streams across remote cloud servers.
+      </p>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num-badge">03</span> System Requirements &amp; Drivers</h2>
+      <p>
+        Optimal performance requires meeting the following system conditions:
+      </p>
+      <ul>
+        <li><strong>Windows Host:</strong> Windows 10 or Windows 11 (64-bit). DirectX 11.1+ DXGI Desktop Duplication support is required for screen capture.</li>
+        <li><strong>Extended Display Mode:</strong> To establish a genuine independent secondary workspace, the bundled Microsoft IddCx Indirect Display Driver must be installed and active. Desktop Mirroring functions immediately without drivers.</li>
+        <li><strong>Android Client:</strong> Android 8.0 (Oreo, API 26) or later with hardware H.264 <code>MediaCodec</code> support.</li>
+        <li><strong>Network Configuration:</strong> You are responsible for ensuring your local Wi-Fi router or Windows Defender Firewall permits incoming TCP traffic on port <strong>52025</strong> and UDP discovery on port <strong>52026</strong>.</li>
+      </ul>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num-badge">04</span> Open Source MIT License</h2>
+      <p>
+        The complete source code of DuetView is hosted on GitHub under the MIT License:
+      </p>
+      <div class="callout-box">
+        <strong>MIT License Notice:</strong><br>
+        Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the conditions stated in the MIT License.
+      </div>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num-badge">05</span> Disclaimer of Warranties ("AS IS")</h2>
+      <p>
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NONINFRINGEMENT.
+      </p>
+      <p>
+        IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+      </p>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num-badge">06</span> Modifications &amp; Inquiries</h2>
+      <p>
+        We reserve the right to modify these terms at any time by updating this page in the official repository. Any questions regarding these terms can be submitted via the issue tracker:
+      </p>
+      <p>
+        📧 <strong>GitHub Issues:</strong> <a href="https://github.com/Aryan130805/DuetView/issues" target="_blank" rel="noopener" style="color: var(--cyan-primary);">https://github.com/Aryan130805/DuetView/issues</a>
+      </p>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-bottom">
+        <div>&copy; 2026 DuetView. Created by Aryan. Open source under the MIT License.</div>
+        <div class="footer-legal-links">
+          <a href="index.html">Home</a>
+          <a href="privacy.html">Privacy Policy</a>
+          <a href="terms.html">Terms &amp; Conditions</a>
+          <a href="https://github.com/Aryan130805/DuetView" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/website/js/main.js"></script>
+</body>
+</html>

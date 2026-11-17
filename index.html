@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DuetView — Turn Your Android Device into a Second Monitor for Windows</title>
+  <meta name="description" content="DuetView transforms your Android phone or tablet into a fluid, high-performance second display for Windows over Wi-Fi or USB tethering. 100% peer-to-peer, zero-cloud data, open source.">
+  <meta name="keywords" content="DuetView, second display, second monitor, Android monitor, Windows extended display, portable monitor, low latency streaming, IddCx driver, peer-to-peer screen share">
+  <meta name="author" content="Aryan (@Aryan130805)">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://aryan130805.github.io/DuetView/">
+  <meta property="og:title" content="DuetView — Your Second Screen. Anywhere. Anytime.">
+  <meta property="og:description" content="Transform your Android phone or tablet into a high-performance second monitor for your Windows PC over Wi-Fi or USB tethering. Sub-5ms latency, peer-to-peer, zero cloud relay.">
+  <meta property="og:image" content="assets/website/images/duetview_icon.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DuetView — Turn Your Android Device into a Second Monitor">
+  <meta name="twitter:description" content="Zero cloud relay. Sub-5ms latency. Hardware-accelerated H.264 peer-to-peer streaming for Windows & Android.">
+  <meta name="twitter:image" content="assets/website/images/duetview_icon.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="assets/website/images/duetview_icon.png">
+
+  <!-- Fonts & Stylesheet -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/website/css/style.css">
+</head>
+<body>
+
+  <!-- =====================================================================
+       1. NAVIGATION BAR
+       ===================================================================== -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="#" class="nav-brand" aria-label="DuetView Home">
+        <img src="assets/website/images/duetview_icon.png" alt="DuetView Logo" class="brand-logo" width="40" height="40">
+        <div class="brand-text-group">
+          <span class="brand-name">Duet<span class="brand-highlight">View</span></span>
+          <span class="brand-badge">v0.4.0</span>
+        </div>
+      </a>
+
+      <ul class="nav-menu" id="nav-menu">
+        <li class="nav-item"><a href="#features" class="nav-link">Features</a></li>
+        <li class="nav-item"><a href="#how-it-works" class="nav-link">How It Works</a></li>
+        <li class="nav-item"><a href="#download" class="nav-link">Download</a></li>
+        <li class="nav-item"><a href="#about" class="nav-link">About</a></li>
+        <li class="nav-item"><a href="privacy.html" class="nav-link">Privacy Policy</a></li>
+        <li class="nav-item"><a href="#faq" class="nav-link">FAQ</a></li>
+        <li class="nav-item"><a href="#contact" class="nav-link">Contact</a></li>
+        <li class="nav-item mobile-cta-item">
+          <a href="#download" class="btn btn-primary nav-cta-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Download DuetView
+          </a>
+        </li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="#download" class="btn btn-primary nav-cta-desktop">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Download</span>
+        </a>
+        <button class="hamburger" id="hamburger" aria-label="Toggle navigation menu" aria-expanded="false">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- =====================================================================
+       2. HERO SECTION
+       ===================================================================== -->
+  <header class="hero-section" id="home">
+    <div class="hero-glow-blob hero-glow-1"></div>
+    <div class="hero-glow-blob hero-glow-2"></div>
+
+    <div class="section-container hero-container">
+      <div class="hero-content">
+        <div class="badge-pill">
+          <span class="pill-dot"></span>
+          <span class="pill-text">100% Peer-to-Peer Display Extension • Open Source</span>
+        </div>
+
+        <h1 class="hero-title">
+          Your Second Screen.<br>
+          <span class="text-gradient">Anywhere. Anytime.</span>
+        </h1>
+
+        <p class="hero-description">
+          Transform your Android phone or tablet into a fluid, high-performance second monitor for your Windows PC over high-speed Wi-Fi or ultra-low-latency USB tethering. Zero cloud relay, zero subscriptions, and zero latency compromises.
+        </p>
+
+        <div class="hero-cta-group">
+          <a href="#download" class="btn btn-primary btn-lg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download DuetView</span>
+          </a>
+          <a href="https://github.com/Aryan130805/DuetView" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-lg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            <span>View on GitHub</span>
+          </a>
+        </div>
+
+        <div class="hero-proof-badges">
+          <div class="proof-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Windows 10 / 11 64-bit</span>
+          </div>
+          <div class="proof-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Android 8.0+ (Phones & Tablets)</span>
+          </div>
+          <div class="proof-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>MIT License</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Dual-Display Showcase Visual -->
+      <div class="hero-visual">
+        <div class="workspace-mockup-wrapper">
+          <!-- Main PC Display Mockup -->
+          <div class="mockup-display mockup-pc">
+            <div class="mockup-header">
+              <div class="mockup-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <span class="mockup-title">Windows 11 Desktop — Primary Display</span>
+              <span class="mockup-tag">Host Engine</span>
+            </div>
+            <div class="mockup-screen">
+              <div class="mockup-ide">
+                <div class="ide-sidebar">
+                  <div class="ide-line"></div>
+                  <div class="ide-line short"></div>
+                  <div class="ide-line"></div>
+                </div>
+                <div class="ide-code">
+                  <span class="code-comment">// DuetView DXGI Desktop Capture & Stream Engine</span><br>
+                  <span class="code-kw">auto</span> session = DuetView::CreateSession(Port::<span class="code-val">52025</span>);<br>
+                  session.InitializeVirtualDisplay(<span class="code-str">"2560x1600@60Hz"</span>);<br>
+                  session.EnableHardwareAcceleration(NVENC | AMF | QSV);<br>
+                  session.StartDirectP2PStream();<br>
+                  <span class="code-kw">status</span>: <span class="code-highlight">STREAMING ACTIVE</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Connected Android Companion Tablet Mockup -->
+          <div class="mockup-display mockup-tablet">
+            <div class="mockup-header tablet-header">
+              <div class="tablet-camera"></div>
+              <span class="mockup-title">DuetView Android Companion</span>
+              <span class="live-indicator"><span class="live-dot"></span> Live</span>
+            </div>
+            <div class="mockup-screen tablet-screen">
+              <div class="tablet-content">
+                <div class="tablet-badge">Extended Canvas #2</div>
+                <div class="tablet-chart">
+                  <div class="chart-bar" style="height: 40%"></div>
+                  <div class="chart-bar" style="height: 70%"></div>
+                  <div class="chart-bar" style="height: 55%"></div>
+                  <div class="chart-bar" style="height: 88%"></div>
+                  <div class="chart-bar active" style="height: 95%"></div>
+                </div>
+                <div class="tablet-telemetry-tag">Latency: 4.1 ms • 60.0 FPS</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wireless / Cable Sync Wave Element -->
+          <div class="sync-beam">
+            <div class="beam-glow"></div>
+            <span class="beam-label">Wi-Fi & USB Tethering Direct Socket</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Telemetry Stats Bar -->
+    <div class="section-container">
+      <div class="telemetry-bar">
+        <div class="telemetry-card">
+          <div class="telemetry-icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <div class="telemetry-text">
+            <span class="telemetry-value">&lt; 5 ms</span>
+            <span class="telemetry-label">Ultra-Low Glass Latency</span>
+          </div>
+        </div>
+
+        <div class="telemetry-card">
+          <div class="telemetry-icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          </div>
+          <div class="telemetry-text">
+            <span class="telemetry-value">60 – 120 FPS</span>
+            <span class="telemetry-label">Silky Fluid Refresh Rate</span>
+          </div>
+        </div>
+
+        <div class="telemetry-card">
+          <div class="telemetry-icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <div class="telemetry-text">
+            <span class="telemetry-value">100% P2P</span>
+            <span class="telemetry-label">Zero-Cloud Local Privacy</span>
+          </div>
+        </div>
+
+        <div class="telemetry-card">
+          <div class="telemetry-icon-box">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+          </div>
+          <div class="telemetry-text">
+            <span class="telemetry-value">Driver-Free</span>
+            <span class="telemetry-label">Instant Mirroring Out-of-the-Box</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =====================================================================
+       3. ABOUT DUETVIEW SECTION
+       ===================================================================== -->
+  <section class="section-block" id="about">
+    <div class="section-container">
+      <div class="section-header text-center">
+        <span class="section-tag">DUAL MODES</span>
+        <h2 class="section-title">Built for Real Multitasking Power</h2>
+        <p class="section-subtitle">
+          Whether you want a genuine secondary desktop workspace to drag windows into or an instant mirroring canvas with touch interaction, DuetView adapts to your workflow.
+        </p>
+      </div>
+
+      <div class="about-grid">
+        <div class="about-card">
+          <div class="about-badge">Flagship Mode</div>
+          <div class="about-icon-box">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+          </div>
+          <h3 class="about-title">Virtual Extended Display</h3>
+          <p class="about-text">
+            Powered by the high-performance Windows Indirect Display Driver (IddCx), DuetView creates an authentic, native secondary monitor recognized directly by Windows Display Settings.
+          </p>
+          <ul class="about-list">
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Drag apps, code editors, and browsers across monitors</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Independent resolution scaling (1080p, 2K, tablet native)</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Supports landscape & portrait device orientations</li>
+          </ul>
+        </div>
+
+        <div class="about-card">
+          <div class="about-badge">Zero Driver Setup</div>
+          <div class="about-icon-box">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="10 9 9 9 8 9"></polyline><polyline points="14 15 15 15 16 15"></polyline></svg>
+          </div>
+          <h3 class="about-title">Desktop Mirroring</h3>
+          <p class="about-text">
+            Need an instant second display without installing kernel or indirect drivers? DuetView features a driver-free Desktop Mirroring mode leveraging direct Windows DXGI desktop duplication.
+          </p>
+          <ul class="about-list">
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Zero installation hurdles or administrator driver prompts</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Full touch input with direct Windows mouse injection</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Ideal for presentations, media viewing, and on-the-go setups</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       4. FEATURES SECTION (8 CARDS)
+       ===================================================================== -->
+  <section class="section-block bg-subtle" id="features">
+    <div class="section-container">
+      <div class="section-header text-center">
+        <span class="section-tag">ENGINEERED EXCELLENCE</span>
+        <h2 class="section-title">Designed for Performance and Reliability</h2>
+        <p class="section-subtitle">
+          Every layer of DuetView is tuned for high responsiveness, crystal-clear clarity, and rock-solid local peer-to-peer security.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <!-- Feature 1 -->
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+          </div>
+          <span class="feature-tag">Wireless</span>
+          <h3 class="feature-title">High-Speed Wi-Fi Streaming</h3>
+          <p class="feature-desc">Connect untethered across your local 5 GHz or 2.4 GHz Wi-Fi network. Adaptive bitrates ensure uninterrupted streaming even with fluctuating signal quality.</p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="6" rx="2"></rect><rect x="4" y="8" width="16" height="12" rx="2"></rect><line x1="9" y1="20" x2="9" y2="22"></line><line x1="15" y1="20" x2="15" y2="22"></line></svg>
+          </div>
+          <span class="feature-tag">Wired</span>
+          <h3 class="feature-title">Ultra-Low Latency USB Tethering</h3>
+          <p class="feature-desc">Plug in a USB cable and activate USB tethering for sub-5ms glass latency, zero Wi-Fi interference, and maximum 12,000 Kbps lossless visual fidelity.</p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+          </div>
+          <span class="feature-tag">IddCx Driver</span>
+          <h3 class="feature-title">Virtual Extended Display</h3>
+          <p class="feature-desc">A genuine virtual secondary display driver integrated seamlessly into Windows. Drag apps, organize workspaces, and position monitors freely.</p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"></rect><circle cx="12" cy="10" r="3"></circle></svg>
+          </div>
+          <span class="feature-tag">Zero Driver</span>
+          <h3 class="feature-title">Driverless Desktop Mirroring</h3>
+          <p class="feature-desc">Capture and duplicate your desktop instantly with Microsoft DXGI Desktop Duplication without needing driver installation or system reboots.</p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          </div>
+          <span class="feature-tag">Hardware NVENC</span>
+          <h3 class="feature-title">Hardware-Accelerated Codec</h3>
+          <p class="feature-desc">H.264 video encoding utilizing NVIDIA NVENC, AMD AMF, and Intel QuickSync, paired with Android MediaCodec hardware decoding for minimal battery drain.</p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+          </div>
+          <span class="feature-tag">Touch & Pen</span>
+          <h3 class="feature-title">Interactive Touch & Input</h3>
+          <p class="feature-desc">Control Windows directly from your Android touchscreen with left-click, right-click, tap-to-click, fluid dragging, and precision scrolling gesture recognition.</p>
+        </div>
+
+        <!-- Feature 7 -->
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          </div>
+          <span class="feature-tag">Instant Connect</span>
+          <h3 class="feature-title">QR Code & UDP Auto-Discovery</h3>
+          <p class="feature-desc">Forget typing IP addresses. DuetView discovers PCs on the local network automatically or pairs instantly with a one-second QR code scan.</p>
+        </div>
+
+        <!-- Feature 8 -->
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </div>
+          <span class="feature-tag">Customizable</span>
+          <h3 class="feature-title">Custom Display Preferences</h3>
+          <p class="feature-desc">Fine-tune frame rate targets (30, 60, 120 FPS), bitrate profiles (Fast, Balanced, Lossless), custom display aspect ratios, and touch sensitivity presets.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       5. HOW IT WORKS SECTION (5-STEP ROADMAP)
+       ===================================================================== -->
+  <section class="section-block" id="how-it-works">
+    <div class="section-container">
+      <div class="section-header text-center">
+        <span class="section-tag">QUICK START ROADMAP</span>
+        <h2 class="section-title">Up and Running in 5 Simple Steps</h2>
+        <p class="section-subtitle">
+          From download to a live dual-monitor workflow in under two minutes. No account creation or cloud setups required.
+        </p>
+      </div>
+
+      <div class="roadmap-timeline">
+        <!-- Step 1 -->
+        <div class="roadmap-step">
+          <div class="step-marker">
+            <span class="step-number">1</span>
+          </div>
+          <div class="step-card">
+            <div class="step-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </div>
+            <h3 class="step-title">Download & Install</h3>
+            <p class="step-text">Download the <strong>DuetView PC</strong> setup for your Windows computer and the <strong>DuetView Android APK</strong> for your tablet or phone from our official release channels.</p>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="roadmap-step">
+          <div class="step-marker">
+            <span class="step-number">2</span>
+          </div>
+          <div class="step-card">
+            <div class="step-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            </div>
+            <h3 class="step-title">Launch DuetView PC</h3>
+            <p class="step-text">Start DuetView PC on Windows. The background capture engine initializes and listens securely on your local network (ports 52025/52026).</p>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="roadmap-step">
+          <div class="step-marker">
+            <span class="step-number">3</span>
+          </div>
+          <div class="step-card">
+            <div class="step-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+            </div>
+            <h3 class="step-title">Open DuetView on Android</h3>
+            <p class="step-text">Open the companion app on your Android device. Connect both devices to the same Wi-Fi router or connect a USB-C cable with tethering enabled.</p>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="roadmap-step">
+          <div class="step-marker">
+            <span class="step-number">4</span>
+          </div>
+          <div class="step-card">
+            <div class="step-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            </div>
+            <h3 class="step-title">Pair via QR or Auto-Discovery</h3>
+            <p class="step-text">Tap your discovered PC in the device list or scan the displayed QR code on your PC screen with your Android camera for instant pairing.</p>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="roadmap-step">
+          <div class="step-marker">
+            <span class="step-number">5</span>
+          </div>
+          <div class="step-card">
+            <div class="step-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <h3 class="step-title">Enjoy Your Second Screen</h3>
+            <p class="step-text">Your Android device instantly becomes a buttery-smooth 60 FPS monitor. Drag windows, control apps with touch gestures, and boost your daily productivity!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       6. DOWNLOAD SECTION
+       ===================================================================== -->
+  <section class="section-block bg-subtle" id="download">
+    <div class="section-container">
+      <div class="section-header text-center">
+        <span class="section-tag">OFFICIAL RELEASES</span>
+        <h2 class="section-title">Download DuetView for Your Devices</h2>
+        <p class="section-subtitle">
+          Free, open source, and privacy-respecting companion display software. Choose your platform below.
+        </p>
+      </div>
+
+      <!-- Platform Switcher Tabs -->
+      <div class="download-tabs-wrapper">
+        <div class="download-tab-buttons">
+          <button class="tab-btn active" data-tab="tab-android">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 7.2433 13.8533 6.64 12 6.64s-3.5902.6033-5.1367 1.7097L4.841 4.8467a.416.416 0 00-.5677-.1521.4157.4157 0 00-.152 5676l1.9972 3.4592C2.6889 10.5738.3333 13.8533.3333 17.6667h23.3334c0-3.8134-2.3556-7.0929-5.7867-8.3453"/></svg>
+            <span>Android (Companion Client)</span>
+          </button>
+          <button class="tab-btn" data-tab="tab-windows">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+            <span>Windows (DuetView PC Host)</span>
+          </button>
+        </div>
+
+        <!-- Android Downloads -->
+        <div class="download-tab-pane active" id="tab-android">
+          <div class="download-cards-grid">
+            <div class="download-card featured">
+              <div class="card-status-badge">Recommended</div>
+              <div class="download-card-header">
+                <div class="dl-icon-box android-box">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 7.2433 13.8533 6.64 12 6.64s-3.5902.6033-5.1367 1.7097L4.841 4.8467a.416.416 0 00-.5677-.1521.4157.4157 0 00-.152.5676l1.9972 3.4592C2.6889 10.5738.3333 13.8533.3333 17.6667h23.3334c0-3.8134-2.3556-7.0929-5.7867-8.3453"/></svg>
+                </div>
+                <div>
+                  <h3 class="dl-title">DuetView Android APK</h3>
+                  <span class="dl-meta">v0.4.0 • Android 8.0 (Oreo) or higher</span>
+                </div>
+              </div>
+              <p class="dl-desc">Official companion display client for Android smartphones, foldable devices, and tablets. Includes hardware-accelerated MediaCodec video decoding and touch digitizer.</p>
+              <div class="dl-actions">
+                <a href="https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-Android.apk" class="btn btn-primary btn-block">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span>Download Android APK (v0.4.0)</span>
+                </a>
+              </div>
+            </div>
+
+            <div class="download-card disabled-card">
+              <div class="card-status-badge pending-badge">Coming Soon</div>
+              <div class="download-card-header">
+                <div class="dl-icon-box playstore-box">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.793 12 3.61 22.186a2.38 2.38 0 0 1-.61-.926V2.74c.14-.356.35-.67.609-.926zm11.305 11.307l2.257 2.257-11.64 6.72 9.383-8.977zm0-2.242L5.53 1.902l11.64 6.72-2.256 2.257zm1.121 1.121l4.47 2.581c1.233.712 1.233 1.87 0 2.582l-4.47 2.581-2.09-2.09 2.09-2.09z"/></svg>
+                </div>
+                <div>
+                  <h3 class="dl-title">Google Play Store</h3>
+                  <span class="dl-meta">Google Play Console Publication Pending</span>
+                </div>
+              </div>
+              <p class="dl-desc">DuetView is currently being prepared for Google Play Store publication with full Play Protect compliance. In the meantime, install the direct APK above.</p>
+              <div class="dl-actions">
+                <button class="btn btn-disabled btn-block" disabled>
+                  <span>Coming Soon to Google Play</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Windows Downloads -->
+        <div class="download-tab-pane" id="tab-windows">
+          <div class="download-cards-grid">
+            <div class="download-card featured">
+              <div class="card-status-badge">Recommended</div>
+              <div class="download-card-header">
+                <div class="dl-icon-box windows-box">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+                </div>
+                <div>
+                  <h3 class="dl-title">DuetView PC Setup (Installer)</h3>
+                  <span class="dl-meta">v0.4.0 • Windows 10 & 11 (64-bit)</span>
+                </div>
+              </div>
+              <p class="dl-desc">Standard Windows desktop installer. Installs DuetView PC, configures Windows Firewall permissions, and bundles optional Virtual Display Driver components.</p>
+              <div class="dl-actions">
+                <a href="https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-Setup.exe" class="btn btn-primary btn-block">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span>Download Windows Installer (.exe)</span>
+                </a>
+              </div>
+            </div>
+
+            <div class="download-card">
+              <div class="card-status-badge neutral-badge">Portable</div>
+              <div class="download-card-header">
+                <div class="dl-icon-box windows-box">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+                </div>
+                <div>
+                  <h3 class="dl-title">DuetView PC Portable (ZIP)</h3>
+                  <span class="dl-meta">v0.4.0 • Windows 10 & 11 (64-bit)</span>
+                </div>
+              </div>
+              <p class="dl-desc">Zero-installation portable archive. Extract and run DuetView PC directly from any folder or USB flash drive without touching the Windows registry.</p>
+              <div class="dl-actions">
+                <a href="https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-0.4.0-win64.zip" class="btn btn-secondary btn-block">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span>Download Portable Archive (.zip)</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Installation Guide Sub-Section -->
+      <div class="install-guide-box">
+        <h3 class="guide-box-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          Quick Installation Instructions
+        </h3>
+        <div class="guide-steps-grid">
+          <div class="guide-step">
+            <span class="guide-step-tag">Android</span>
+            <p>On your Android device, tap the downloaded APK. If prompted, grant permission to <em>"Install unknown apps"</em> for your browser. Once installed, grant Camera (for QR code pairing) and Local Network permissions.</p>
+          </div>
+          <div class="guide-step">
+            <span class="guide-step-tag">Windows</span>
+            <p>Run <code>DuetView-PC-Setup.exe</code>. When Windows Defender SmartScreen appears, click <em>More info &rarr; Run anyway</em>. When prompted by Windows Firewall on first run, check <em>Private networks</em> to allow streaming.</p>
+          </div>
+          <div class="guide-step">
+            <span class="guide-step-tag">Extended Mode</span>
+            <p>To use the full Virtual Extended Display mode, run <code>install_driver.bat</code> from the Drivers tab in DuetView PC to install the Microsoft-signed IddCx virtual monitor driver.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHA-256 Cryptographic Checksum Box -->
+      <div class="checksum-box">
+        <div class="checksum-header">
+          <div class="checksum-title-group">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <h4 class="checksum-title">Release Asset Cryptographic Checksums (v0.4.0)</h4>
+          </div>
+          <span class="checksum-subtitle">Verify your downloaded binaries against our official SHA-256 hashes</span>
+        </div>
+
+        <div class="checksum-list">
+          <!-- Item 1: Android APK -->
+          <div class="checksum-item">
+            <div class="checksum-info">
+              <span class="checksum-file">DuetView-Android.apk</span>
+              <code class="checksum-hash" id="hash-apk">05c5cf02642801b315080cbc8d0749f6a25fba2ee689f18d4064d62695c90b5a</code>
+            </div>
+            <button class="btn btn-outline btn-sm copy-checksum-btn" data-checksum="05c5cf02642801b315080cbc8d0749f6a25fba2ee689f18d4064d62695c90b5a" aria-label="Copy Android APK checksum">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+
+          <!-- Item 2: Windows Setup -->
+          <div class="checksum-item">
+            <div class="checksum-info">
+              <span class="checksum-file">DuetView-PC-Setup.exe</span>
+              <code class="checksum-hash" id="hash-setup">0fe3d3561893dc3257014c56b393dbe5a5c18a3904aab025783b52f8c295a2c6</code>
+            </div>
+            <button class="btn btn-outline btn-sm copy-checksum-btn" data-checksum="0fe3d3561893dc3257014c56b393dbe5a5c18a3904aab025783b52f8c295a2c6" aria-label="Copy Windows setup checksum">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+
+          <!-- Item 3: Windows Portable ZIP -->
+          <div class="checksum-item">
+            <div class="checksum-info">
+              <span class="checksum-file">DuetView-PC-0.4.0-win64.zip</span>
+              <code class="checksum-hash" id="hash-zip">7e0b0589de23fc5349ec2c0dedc1f6207fb6f2c9bf76cdbdb9b19ab3b6072667</code>
+            </div>
+            <button class="btn btn-outline btn-sm copy-checksum-btn" data-checksum="7e0b0589de23fc5349ec2c0dedc1f6207fb6f2c9bf76cdbdb9b19ab3b6072667" aria-label="Copy Portable ZIP checksum">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="checksum-footer">
+          <span>Official pre-compiled binaries are published in the <a href="https://github.com/Aryan130805/DuetView/releases" target="_blank" rel="noopener noreferrer">GitHub Releases section</a>.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       7. ABOUT THE DEVELOPER SECTION
+       ===================================================================== -->
+  <section class="section-block" id="developer">
+    <div class="section-container">
+      <div class="section-header text-center">
+        <span class="section-tag">MEET THE CREATOR</span>
+        <h2 class="section-title">Engineered with Passion by Aryan</h2>
+        <p class="section-subtitle">
+          Building fast, transparent, and user-centric software without subscription barriers.
+        </p>
+      </div>
+
+      <div class="developer-card-wrapper">
+        <div class="developer-card">
+          <div class="dev-avatar-wrapper">
+            <img src="assets/website/images/duetview_icon.png" alt="Aryan - DuetView Developer" class="dev-avatar" width="96" height="96">
+            <div class="dev-badge-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            </div>
+          </div>
+
+          <div class="dev-details">
+            <h3 class="dev-name">Aryan</h3>
+            <span class="dev-role">Creator & Lead Developer of DuetView</span>
+            <p class="dev-bio">
+              I created DuetView to solve a real frustration: commercial secondary display apps are often laden with expensive monthly subscriptions, mandatory cloud logins, or telemetry overhead. DuetView is built from the ground up as a native, peer-to-peer, high-fps solution that gives every student, developer, and professional a portable second screen for free.
+            </p>
+
+            <div class="dev-links">
+              <a href="https://github.com/Aryan130805" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span>Follow @Aryan130805</span>
+              </a>
+              <a href="https://github.com/Aryan130805/DuetView" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                <span>View Project Repository</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       8. OPEN SOURCE SECTION
+       ===================================================================== -->
+  <section class="section-block bg-subtle" id="opensource">
+    <div class="section-container">
+      <div class="opensource-banner">
+        <div class="opensource-content">
+          <div class="badge-pill mb-3">
+            <span class="pill-dot"></span>
+            <span class="pill-text">Permissive MIT License</span>
+          </div>
+          <h2 class="opensource-title">100% Free & Open Source Forever</h2>
+          <p class="opensource-description">
+            DuetView is developed openly on GitHub. Inspect every line of code, compile your own binaries, contribute new features, or report issues. No spyware, no analytics trackers, no hidden subscription fees.
+          </p>
+          <div class="opensource-actions">
+            <a href="https://github.com/Aryan130805/DuetView" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+              <span>Explore GitHub Repository</span>
+            </a>
+            <a href="https://github.com/Aryan130805/DuetView/stargazers" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <span>Star on GitHub</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       9. FAQ SECTION (COLLAPSIBLE ACCORDION)
+       ===================================================================== -->
+  <section class="section-block" id="faq">
+    <div class="section-container">
+      <div class="section-header text-center">
+        <span class="section-tag">FREQUENTLY ASKED QUESTIONS</span>
+        <h2 class="section-title">Everything You Need to Know</h2>
+        <p class="section-subtitle">
+          Have questions about network setup, driver requirements, or compatibility? Find fast answers below.
+        </p>
+      </div>
+
+      <div class="faq-accordion-wrapper">
+        <!-- Question 1 -->
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>How does DuetView achieve sub-5ms glass latency?</span>
+            <span class="faq-chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p>DuetView uses a high-performance native C++ streaming pipeline that captures desktop frames via Microsoft's DirectX Graphics Infrastructure (DXGI) Desktop Duplication API. Frames are encoded in real time using dedicated GPU silicon (NVIDIA NVENC, AMD AMF, or Intel QuickSync) and transmitted over a lightweight, zero-copy TCP/UDP socket directly to the Android device, where they are decoded by hardware via Android's MediaCodec API.</p>
+          </div>
+        </div>
+
+        <!-- Question 2 -->
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>Do I need internet access or a cloud account to use DuetView?</span>
+            <span class="faq-chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p><strong>No. Never.</strong> DuetView is strictly a 100% peer-to-peer local application. It operates entirely over your local Wi-Fi router or a direct USB tethering cable. Your desktop video feed, touch events, and session credentials never leave your local physical devices and are never transmitted to any external server.</p>
+          </div>
+        </div>
+
+        <!-- Question 3 -->
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>What is the difference between Virtual Extended Display and Desktop Mirroring?</span>
+            <span class="faq-chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p><strong>Virtual Extended Display</strong> installs an Indirect Display Driver (IddCx) that makes Windows see a genuine second monitor. You can drag independent windows, arrange display positions, and multitask across screens. <strong>Desktop Mirroring</strong> requires zero drivers or administrator setup; it instantly duplicates your existing primary screen onto your Android tablet for quick presentations or remote touch control.</p>
+          </div>
+        </div>
+
+        <!-- Question 4 -->
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>How do I enable the Extended Display mode in Windows?</span>
+            <span class="faq-chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p>In DuetView PC, navigate to the <em>Driver / Extended Display</em> tab. Click <em>Install Virtual Display Driver</em>. Windows will install the Microsoft-compliant virtual display adapter. Once installed, your Android device will appear as Display 2 in Windows <em>Settings &rarr; System &rarr; Display</em>.</p>
+          </div>
+        </div>
+
+        <!-- Question 5 -->
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>Can I connect using a USB cable without Wi-Fi?</span>
+            <span class="faq-chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p>Yes! Simply plug your Android device into your Windows PC with a USB-C or Micro-USB cable and enable <strong>USB Tethering</strong> in Android Settings. DuetView automatically detects the USB network adapter and routes all video streaming over the high-speed wired interface at maximum bitrate.</p>
+          </div>
+        </div>
+
+        <!-- Question 6 -->
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>What Android and Windows versions are supported?</span>
+            <span class="faq-chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p>DuetView supports <strong>Windows 10 and Windows 11 (64-bit)</strong> with any modern Intel, AMD, or NVIDIA GPU supporting DXGI 1.2+ and H.264 video hardware encoding. On mobile, DuetView supports <strong>Android 8.0 (Oreo, API level 26) through Android 15</strong> on both phones and tablets.</p>
+          </div>
+        </div>
+
+        <!-- Question 7 -->
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>Why did Windows Firewall prompt me on first run?</span>
+            <span class="faq-chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p>DuetView PC hosts a local peer-to-peer TCP/UDP streaming socket on port <strong>52025</strong> and auto-discovery broadcasts on port <strong>52026</strong>. Windows Firewall prompts you to ensure you want to allow incoming connections from your Android device on your private local network.</p>
+          </div>
+        </div>
+
+        <!-- Question 8 -->
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>Is DuetView really free? Are there any hidden costs?</span>
+            <span class="faq-chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p><strong>Yes, 100% free and open source under the MIT License.</strong> There are no trial periods, no watermarks, no locked FPS limits, and no paid tiers. The software is maintained as an open-source utility for the community.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       10. CONTACT & SUPPORT SECTION
+       ===================================================================== -->
+  <section class="section-block bg-subtle" id="contact">
+    <div class="section-container">
+      <div class="contact-box-wrapper">
+        <div class="contact-content text-center">
+          <span class="section-tag">COMMUNITY SUPPORT</span>
+          <h2 class="section-title">Need Help or Found a Bug?</h2>
+          <p class="section-subtitle">
+            DuetView is actively maintained. If you encounter an issue, have a feature suggestion, or want to contribute to the code, visit our official GitHub issue tracker.
+          </p>
+          <div class="contact-actions">
+            <a href="https://github.com/Aryan130805/DuetView/issues" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <span>Open an Issue on GitHub</span>
+            </a>
+            <a href="privacy.html" class="btn btn-secondary btn-lg">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              <span>Read Privacy Policy</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       11. FOOTER
+       ===================================================================== -->
+  <footer class="footer">
+    <div class="section-container">
+      <div class="footer-top-grid">
+        <!-- Brand Info -->
+        <div class="footer-col brand-col">
+          <div class="footer-brand">
+            <img src="assets/website/images/duetview_icon.png" alt="DuetView Logo" width="36" height="36">
+            <span class="brand-name">Duet<span class="brand-highlight">View</span></span>
+          </div>
+          <p class="footer-bio">
+            Turn your Android phone or tablet into a fluid, responsive second display for Windows over Wi-Fi or USB tethering. Open source and peer-to-peer.
+          </p>
+          <div class="footer-license-badge">
+            <span>Licensed under MIT</span>
+          </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="footer-col">
+          <h4 class="footer-heading">Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#download">Download</a></li>
+            <li><a href="#about">About DuetView</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+        </div>
+
+        <!-- Download & Releases -->
+        <div class="footer-col">
+          <h4 class="footer-heading">Downloads (v0.4.0)</h4>
+          <ul class="footer-links">
+            <li><a href="https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-Android.apk">Android APK</a></li>
+            <li><a href="https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-Setup.exe">Windows PC Setup</a></li>
+            <li><a href="https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-0.4.0-win64.zip">Windows Portable ZIP</a></li>
+            <li><a href="https://github.com/Aryan130805/DuetView/releases" target="_blank" rel="noopener noreferrer">All GitHub Releases</a></li>
+          </ul>
+        </div>
+
+        <!-- Legal & Community -->
+        <div class="footer-col">
+          <h4 class="footer-heading">Legal & Community</h4>
+          <ul class="footer-links">
+            <li><a href="privacy.html">Privacy Policy</a></li>
+            <li><a href="terms.html">Terms & Conditions</a></li>
+            <li><a href="https://github.com/Aryan130805/DuetView" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
+            <li><a href="https://github.com/Aryan130805" target="_blank" rel="noopener noreferrer">Developer GitHub (@Aryan130805)</a></li>
+            <li><a href="https://github.com/Aryan130805/DuetView/issues" target="_blank" rel="noopener noreferrer">Bug Tracker</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div class="footer-copy">
+          &copy; 2026 DuetView by <a href="https://github.com/Aryan130805" target="_blank" rel="noopener noreferrer">Aryan</a>. All rights reserved.
+        </div>
+        <div class="footer-sublinks">
+          <a href="privacy.html">Privacy</a>
+          <span class="sep">•</span>
+          <a href="terms.html">Terms</a>
+          <span class="sep">•</span>
+          <a href="https://github.com/Aryan130805/DuetView/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Floating Back-to-Top Button -->
+  <button class="back-to-top" id="backToTop" aria-label="Scroll back to top">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+  </button>
+
+  <!-- JavaScript -->
+  <script src="assets/website/js/main.js"></script>
+</body>
+</html>
