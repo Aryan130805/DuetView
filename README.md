@@ -27,7 +27,8 @@ python -m http.server 8000
 Then navigate to [http://localhost:8000](http://localhost:8000) in your browser.
 
 ### Hosting & Deployment
-- **Netlify:** Root-level [`netlify.toml`](netlify.toml) and [`_redirects`](_redirects) provide automatic security headers and clean URL rewrites (`/privacy-policy` &rarr; `/privacy.html`, `/terms` &rarr; `/terms.html`). Set publish directory to `.`.
+- **Vercel:** Root-level [`vercel.json`](vercel.json) configures clean URLs, asset caching headers, and rewrites (`/privacy-policy` &rarr; `/privacy.html`, `/terms` &rarr; `/terms.html`). Simply import the repository in [Vercel](https://vercel.com) and deploy with default settings (root directory `.`, no build command needed).
+- **Netlify:** Root-level [`netlify.toml`](netlify.toml) and [`_redirects`](_redirects) provide automatic security headers and clean URL rewrites. Set publish directory to `.`.
 - **GitHub Pages:** Pre-synchronized mirror maintained in [`docs/`](docs/). In GitHub repository **Settings > Pages**, select branch `master` (or `main`) and directory `/docs`.
 
 ---
