@@ -53,11 +53,18 @@ jobs:
         working-directory: apps/android_app
         run: flutter test
 
-      - name: Build Release APK & App Bundle (AAB)
-        working-directory: apps/android_app
+      - name: Set up Android SDK Platform 36
         run: |
-          flutter build apk --release
-          flutter build appbundle --release
+          yes | ${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          ${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-36" "build-tools;36.0.0" || true
+
+      - name: Build Release APK
+        working-directory: apps/android_app
+        run: flutter build apk --release
+
+      - name: Build Release App Bundle (AAB)
+        working-directory: apps/android_app
+        run: flutter build appbundle --release
 
       - name: Rename Release Artifacts
         run: |
