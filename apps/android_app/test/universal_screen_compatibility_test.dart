@@ -249,13 +249,13 @@ void main() {
       expect(find.text('Download the Release'), findsOneWidget);
       expect(find.text('Install or Extract'), findsOneWidget);
       expect(find.text('Launch DuetView PC'), findsOneWidget);
-      expect(find.text('Open GitHub Releases'), findsOneWidget);
+      expect(find.text('Visit Official Website'), findsOneWidget);
 
-      // Tap Open GitHub Releases button
-      await tester.tap(find.text('Open GitHub Releases'));
+      // Tap Visit Official Website button
+      await tester.tap(find.text('Visit Official Website'));
       await tester.pumpAndSettle();
 
-      expect(launchedUrl, equals('https://github.com/Aryan130805/DuetView/releases'));
+      expect(launchedUrl, equals('https://duet-view.vercel.app/'));
     });
 
     testWidgets('SettingsScreen About section contains clickable developer and repository links', (
@@ -314,7 +314,7 @@ void main() {
       await tester.tap(downloadBtn);
       await tester.pumpAndSettle();
 
-      expect(launchedUrl, equals('https://github.com/Aryan130805/DuetView/releases'));
+      expect(launchedUrl, equals('https://duet-view.vercel.app/'));
     });
 
     testWidgets('StreamingScreen adapts to portrait and landscape viewports without overflow', (

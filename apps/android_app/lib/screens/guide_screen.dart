@@ -680,8 +680,8 @@ class GuideScreen extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: () => UrlLauncherService.openUrl(
                     context,
-                    UrlLauncherService.githubReleases,
-                    title: 'GitHub Releases',
+                    UrlLauncherService.officialWebsite,
+                    title: 'DuetView Website',
                   ),
                   icon: const Icon(Icons.open_in_new, size: 16),
                   label: const Text('Download PC', style: TextStyle(fontSize: 12.5)),

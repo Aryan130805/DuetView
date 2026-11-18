@@ -253,7 +253,7 @@ class SettingsScreen extends StatelessWidget {
                           ListTile(
                             leading: const Icon(Icons.laptop_windows_rounded, color: Color(0xFF38BDF8)),
                             title: const Text('DuetView PC (Windows)'),
-                            subtitle: const Text('Download companion application from GitHub Releases'),
+                            subtitle: const Text('Download companion application from official website'),
                             trailing: const Icon(Icons.open_in_new, size: 18, color: Color(0xFF38BDF8)),
                             onTap: () => DownloadPcGuideSheet.show(context),
                           ),

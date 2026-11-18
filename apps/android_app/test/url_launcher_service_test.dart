@@ -11,7 +11,11 @@ void main() {
   });
 
   group('UrlLauncherService Tests', () {
-    test('Targets correct official GitHub repository and release URLs', () {
+    test('Targets correct official website, GitHub repository and release URLs', () {
+      expect(
+        UrlLauncherService.officialWebsite,
+        equals('https://duet-view.vercel.app/'),
+      );
       expect(
         UrlLauncherService.githubReleases,
         equals('https://github.com/Aryan130805/DuetView/releases'),
@@ -55,6 +59,39 @@ void main() {
       await tester.pump();
 
       expect(launchedUrl, equals('https://github.com/Aryan130805/DuetView/releases'));
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('Invokes launch handler successfully when official website URL is opened', (
+      tester,
+    ) async {
+      String? launchedUrl;
+      UrlLauncherService.testHandler = (url) async {
+        launchedUrl = url;
+        return true;
+      };
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => UrlLauncherService.openUrl(
+                  context,
+                  UrlLauncherService.officialWebsite,
+                  title: 'Official Website',
+                ),
+                child: const Text('Visit Website'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Visit Website'));
+      await tester.pump();
+
+      expect(launchedUrl, equals('https://duet-view.vercel.app/'));
       expect(find.byType(SnackBar), findsNothing);
     });
 

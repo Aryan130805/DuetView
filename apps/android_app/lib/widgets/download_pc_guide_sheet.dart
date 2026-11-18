@@ -96,7 +96,7 @@ class DownloadPcGuideSheet extends StatelessWidget {
                   stepNumber: 1,
                   title: 'Download the Release',
                   description:
-                      'Open the GitHub Releases page and download the installer (DuetView-PC-Setup-v1.0.0.exe) or portable ZIP.',
+                      'Visit the official DuetView website to download the Windows installer (DuetView-PC-Setup-v1.0.0.exe) or portable ZIP.',
                   icon: Icons.download_rounded,
                 ),
                 _buildStep(
@@ -395,12 +395,12 @@ class DownloadPcGuideSheet extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: () => UrlLauncherService.openUrl(
                     context,
-                    UrlLauncherService.githubReleases,
-                    title: 'GitHub Releases',
+                    UrlLauncherService.officialWebsite,
+                    title: 'Official Website',
                   ),
-                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  icon: const Icon(Icons.language_rounded, size: 18),
                   label: const Text(
-                    'Open GitHub Releases',
+                    'Visit Official Website',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                   style: ElevatedButton.styleFrom(

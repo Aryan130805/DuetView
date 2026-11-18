@@ -17,6 +17,8 @@ class UrlLauncherService {
   static UrlLaunchHandler? testHandler;
 
   /// Known project URLs for convenience and consistency across DuetView.
+  static const String officialWebsite =
+      'https://duet-view.vercel.app/';
   static const String githubReleases =
       'https://github.com/Aryan130805/DuetView/releases';
   static const String developerProfile =
