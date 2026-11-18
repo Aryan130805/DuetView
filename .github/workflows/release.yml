@@ -62,23 +62,16 @@ jobs:
         working-directory: apps/android_app
         run: flutter build apk --release --android-skip-build-dependency-validation
 
-      - name: Build Release App Bundle (AAB)
-        working-directory: apps/android_app
-        run: flutter build appbundle --release --android-skip-build-dependency-validation
-
       - name: Rename Release Artifacts
         run: |
           mkdir -p staging
           cp apps/android_app/build/app/outputs/flutter-apk/app-release.apk staging/DuetView-Android.apk
-          cp apps/android_app/build/app/outputs/bundle/release/app-release.aab staging/DuetView-Android.aab
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: |
-            staging/DuetView-Android.apk
-            staging/DuetView-Android.aab
+          path: staging/DuetView-Android.apk
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
@@ -176,12 +169,11 @@ jobs:
           
           # Ensure all release assets are present
           test -f DuetView-Android.apk || (echo "ERROR: DuetView-Android.apk missing!" && exit 1)
-          test -f DuetView-Android.aab || (echo "ERROR: DuetView-Android.aab missing!" && exit 1)
           test -f DuetView-PC-Setup.exe || (echo "ERROR: DuetView-PC-Setup.exe missing!" && exit 1)
           test -f DuetView-PC-0.4.0-win64.zip || (echo "ERROR: DuetView-PC-0.4.0-win64.zip missing!" && exit 1)
           
           # Generate SHA256SUMS.txt
-          sha256sum DuetView-Android.apk DuetView-Android.aab DuetView-PC-Setup.exe DuetView-PC-0.4.0-win64.zip > SHA256SUMS.txt
+          sha256sum DuetView-Android.apk DuetView-PC-Setup.exe DuetView-PC-0.4.0-win64.zip > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Determine tag name
@@ -206,7 +198,6 @@ jobs:
           prerelease: ${{ steps.get_tag.outputs.prerelease == 'true' }}
           files: |
             release-assets/DuetView-Android.apk
-            release-assets/DuetView-Android.aab
             release-assets/DuetView-PC-Setup.exe
             release-assets/DuetView-PC-0.4.0-win64.zip
             release-assets/SHA256SUMS.txt
@@ -217,9 +208,9 @@ jobs:
             
             ### 📥 Downloads
             - **Android APK (Sideload)**: [DuetView-Android.apk](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-Android.apk)
-            - **Android App Bundle (Google Play)**: [DuetView-Android.aab](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-Android.aab)
             - **Windows Installer**: [DuetView-PC-Setup.exe](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-Setup.exe)
             - **Windows Portable ZIP**: [DuetView-PC-0.4.0-win64.zip](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-0.4.0-win64.zip)
+            - **Official Website (Web Downloads & Docs)**: [https://duet-view.vercel.app/](https://duet-view.vercel.app/)
             
             ### 🌟 Key Features
             - **Redesigned Modern UI**: Complete UI redesign for Android (deep midnight palette, side-by-side action cards, 3-tab glassmorphic navigation) and Windows PC (sidebar navigation, dual-screen hero banner, host configuration, QR pairing with neon cyan brackets).
