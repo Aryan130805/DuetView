@@ -85,3 +85,5 @@ $RECYCLE.BIN/
 *.key
 *.pem
 *.env
+**/key.properties
+key.properties
