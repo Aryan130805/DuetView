@@ -5,7 +5,8 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- Features declared as optional to expand device compatibility on Google Play (Chromebooks, tablets, Android TV) -->
+    <!-- Features declared as optional to expand device compatibility on Google Play (Chromebooks, tablets, Android TV, XR, Desktop) -->
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
