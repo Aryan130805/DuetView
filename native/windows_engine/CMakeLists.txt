@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(secondscreen_engine
-    VERSION 0.4.0
+    VERSION 0.5.0
     DESCRIPTION "SecondScreen Windows Native Streaming Engine"
     LANGUAGES CXX
 )
@@ -251,7 +251,7 @@ endif()
 
 set(CPACK_PACKAGE_NAME "DuetView-PC")
 set(CPACK_PACKAGE_VENDOR "DuetView Project")
-set(CPACK_PACKAGE_VERSION "0.4.0")
+set(CPACK_PACKAGE_VERSION "0.5.0")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "DuetView PC Virtual Display & Screen Mirroring Host")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "DuetView")
 set(CPACK_GENERATOR "ZIP")

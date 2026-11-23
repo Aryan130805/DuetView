@@ -1820,7 +1820,7 @@ void DrawAboutTab(Gdiplus::Graphics& g, int clientW, int clientH) {
     float aValW = (innerW > (aLblW + 10.0f)) ? (innerW - aLblW - 10.0f) : 100.0f;
 
     g.DrawString(L"Application Version:", -1, &boldF, Gdiplus::RectF(innerX, curY, aLblW, 20.0f), &fmt, &whiteTxt);
-    g.DrawString(L"0.4.0 (Unified Release Build)", -1, &regF, Gdiplus::RectF(aValX, curY, aValW, 20.0f), &fmt, &cyanTxt);
+    g.DrawString(L"0.5.0 (Unified Release Build)", -1, &regF, Gdiplus::RectF(aValX, curY, aValW, 20.0f), &fmt, &cyanTxt);
     curY += 26.0f;
     g.DrawString(L"Technology Stack:", -1, &boldF, Gdiplus::RectF(innerX, curY, aLblW, 20.0f), &fmt, &whiteTxt);
     g.DrawString(L"Direct3D 11 DXGI Duplication & WMF H.264", -1, &regF, Gdiplus::RectF(aValX, curY, aValW, 20.0f), &fmt, &cyanTxt);

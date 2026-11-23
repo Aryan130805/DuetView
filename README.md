@@ -3,7 +3,7 @@
 > **Turn a compatible Android device into a companion display for your Windows PC.**
 
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Android-blue.svg)](https://github.com/Aryan130805/DuetView)
-[![Release](https://img.shields.io/badge/Release-v0.4.0%20(Beta)-emerald.svg)](https://github.com/Aryan130805/DuetView/releases)
+[![Release](https://img.shields.io/badge/Release-v0.5.0%20(Beta)-emerald.svg)](https://github.com/Aryan130805/DuetView/releases)
 [![Official Website](https://img.shields.io/badge/Website-DuetView%20Official-blue.svg)](https://duet-view.vercel.app/)
 [![Privacy Policy](https://img.shields.io/badge/Privacy-100%25%20P2P%20%7C%20Zero%20Cloud-green.svg)](privacy.html)
 [![Build & Tests](https://img.shields.io/badge/Tests-81%20Android%20%7C%204%20C%2B%2B%20Passing-brightgreen.svg)](https://github.com/Aryan130805/DuetView/actions)
@@ -42,19 +42,19 @@ Official pre-compiled binaries, standalone installers, and Android packages are 
 
 | Platform | Package | Description | Release Asset Link | Website Download |
 |---|---|---|---|---|
-| **Android** | `DuetView-Android.apk` | Sideloadable standalone APK for Android 8.0+ | [Download Android APK](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-Android.apk) | [Download via Website](https://duet-view.vercel.app/) |
-| **Windows PC** | `DuetView-PC-Setup.exe` | Standalone installer for Windows 10/11 (64-bit) | [Download Windows Installer](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-Setup.exe) | [Download via Website](https://duet-view.vercel.app/) |
-| **Windows PC** | `DuetView-PC-0.4.0-win64.zip` | Portable standalone package (no installation required) | [Download Portable ZIP](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-0.4.0-win64.zip) | [Download via Website](https://duet-view.vercel.app/) |
+| **Android** | `DuetView-Android.apk` | Sideloadable standalone APK for Android 8.0+ | [Download Android APK](https://github.com/Aryan130805/DuetView/releases/download/v0.5.0/DuetView-Android.apk) | [Download via Website](https://duet-view.vercel.app/) |
+| **Windows PC** | `DuetView-PC-Setup.exe` | Standalone installer for Windows 10/11 (64-bit) | [Download Windows Installer](https://github.com/Aryan130805/DuetView/releases/download/v0.5.0/DuetView-PC-Setup.exe) | [Download via Website](https://duet-view.vercel.app/) |
+| **Windows PC** | `DuetView-PC-0.5.0-win64.zip` | Portable standalone package (no installation required) | [Download Portable ZIP](https://github.com/Aryan130805/DuetView/releases/download/v0.5.0/DuetView-PC-0.5.0-win64.zip) | [Download via Website](https://duet-view.vercel.app/) |
 
 > [!NOTE]
 > Downloads are always available directly on the [DuetView Releases Page](https://github.com/Aryan130805/DuetView/releases) and on the [Official DuetView Website](https://duet-view.vercel.app/).
 
-### Release Asset SHA-256 Checksums (v0.4.0)
+### Release Asset SHA-256 Checksums (v0.5.0)
 
 ```
 05c5cf02642801b315080cbc8d0749f6a25fba2ee689f18d4064d62695c90b5a  DuetView-Android.apk
 0fe3d3561893dc3257014c56b393dbe5a5c18a3904aab025783b52f8c295a2c6  DuetView-PC-Setup.exe
-7e0b0589de23fc5349ec2c0dedc1f6207fb6f2c9bf76cdbdb9b19ab3b6072667  DuetView-PC-0.4.0-win64.zip
+7e0b0589de23fc5349ec2c0dedc1f6207fb6f2c9bf76cdbdb9b19ab3b6072667  DuetView-PC-0.5.0-win64.zip
 ```
 
 ---
@@ -166,7 +166,7 @@ The standalone installer executable is output to `native/windows_engine/build/Du
 
 ### 2. Windows PC Setup
 - **Installer**: Download and run `DuetView-PC-Setup.exe` from the [Official Website](https://duet-view.vercel.app/) or [GitHub Releases](https://github.com/Aryan130805/DuetView/releases), then follow the on-screen setup wizard.
-- **Portable**: Download and extract `DuetView-PC-0.4.0-win64.zip` from the [Official Website](https://duet-view.vercel.app/) or GitHub Releases to any folder, and double-click `DuetView-PC.exe`.
+- **Portable**: Download and extract `DuetView-PC-0.5.0-win64.zip` from the [Official Website](https://duet-view.vercel.app/) or GitHub Releases to any folder, and double-click `DuetView-PC.exe`.
 
 ### 3. Pairing & Connecting
 

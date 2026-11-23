@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version_tag:
-        description: 'Release version tag (e.g. v0.4.0)'
+        description: 'Release version tag (e.g. v0.5.0)'
         required: true
-        default: 'v0.4.0'
+        default: 'v0.5.0'
       is_draft:
         description: 'Create draft release'
         type: boolean
@@ -104,7 +104,7 @@ jobs:
       - name: Stage Windows Portable ZIP Package
         shell: pwsh
         run: |
-          $ver = "0.4.0"
+          $ver = "0.5.0"
           $stageDir = "staging/DuetView-PC"
           New-Item -ItemType Directory -Force -Path "$stageDir/driver" | Out-Null
           
@@ -170,10 +170,10 @@ jobs:
           # Ensure all release assets are present
           test -f DuetView-Android.apk || (echo "ERROR: DuetView-Android.apk missing!" && exit 1)
           test -f DuetView-PC-Setup.exe || (echo "ERROR: DuetView-PC-Setup.exe missing!" && exit 1)
-          test -f DuetView-PC-0.4.0-win64.zip || (echo "ERROR: DuetView-PC-0.4.0-win64.zip missing!" && exit 1)
+          test -f DuetView-PC-0.5.0-win64.zip || (echo "ERROR: DuetView-PC-0.5.0-win64.zip missing!" && exit 1)
           
           # Generate SHA256SUMS.txt
-          sha256sum DuetView-Android.apk DuetView-PC-Setup.exe DuetView-PC-0.4.0-win64.zip > SHA256SUMS.txt
+          sha256sum DuetView-Android.apk DuetView-PC-Setup.exe DuetView-PC-0.5.0-win64.zip > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Determine tag name
@@ -199,17 +199,17 @@ jobs:
           files: |
             release-assets/DuetView-Android.apk
             release-assets/DuetView-PC-Setup.exe
-            release-assets/DuetView-PC-0.4.0-win64.zip
+            release-assets/DuetView-PC-0.5.0-win64.zip
             release-assets/SHA256SUMS.txt
           body: |
-            ## DuetView v0.4.0 (Pre-Release)
+            ## DuetView v0.5.0 (Pre-Release)
             
             **DuetView** turns your Android phone or tablet into a companion display for your Windows PC over local Wi-Fi or USB tethering.
             
             ### 📥 Downloads
-            - **Android APK (Sideload)**: [DuetView-Android.apk](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-Android.apk)
-            - **Windows Installer**: [DuetView-PC-Setup.exe](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-Setup.exe)
-            - **Windows Portable ZIP**: [DuetView-PC-0.4.0-win64.zip](https://github.com/Aryan130805/DuetView/releases/download/v0.4.0/DuetView-PC-0.4.0-win64.zip)
+            - **Android APK (Sideload)**: [DuetView-Android.apk](https://github.com/Aryan130805/DuetView/releases/download/v0.5.0/DuetView-Android.apk)
+            - **Windows Installer**: [DuetView-PC-Setup.exe](https://github.com/Aryan130805/DuetView/releases/download/v0.5.0/DuetView-PC-Setup.exe)
+            - **Windows Portable ZIP**: [DuetView-PC-0.5.0-win64.zip](https://github.com/Aryan130805/DuetView/releases/download/v0.5.0/DuetView-PC-0.5.0-win64.zip)
             - **Official Website (Web Downloads & Docs)**: [https://duet-view.vercel.app/](https://duet-view.vercel.app/)
             
             ### 🌟 Key Features
