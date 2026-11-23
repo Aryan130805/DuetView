@@ -26,7 +26,7 @@ android {
     defaultConfig {
         applicationId = "com.duetview.app"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
